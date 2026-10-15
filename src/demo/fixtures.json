@@ -1,0 +1,977 @@
+[
+  {
+    "id": "cadastro",
+    "title": "Cadastro de cliente",
+    "subtitle": "Propriedades, tipos e transições envolvendo null.",
+    "letter": "01",
+    "before": "{\n  \"id\": 42,\n  \"nome\": \"Marina Exemplo\",\n  \"email\": \"marina@example.com\",\n  \"cpf\": \"000.000.000-00\",\n  \"ativo\": true,\n  \"apelido\": null,\n  \"telefone\": \"(00) 00000-0000\",\n  \"endereco\": {\n    \"cidade\": \"Cidade Exemplo\",\n    \"uf\": \"SP\"\n  },\n  \"itens\": [\n    {\n      \"sku\": \"DEMO-01\",\n      \"quantidade\": 2\n    },\n    {\n      \"sku\": \"DEMO-02\",\n      \"quantidade\": 1\n    }\n  ]\n}",
+    "after": "{\n  \"id\": 42,\n  \"nome\": \"Marina de Exemplo\",\n  \"email\": \"marina@example.com\",\n  \"documento\": {\n    \"tipo\": \"CPF\",\n    \"numero\": \"000.000.000-00\"\n  },\n  \"ativo\": \"sim\",\n  \"apelido\": \"Mari\",\n  \"telefone\": null,\n  \"endereco\": {\n    \"cidade\": \"Cidade Exemplo\",\n    \"uf\": \"SP\"\n  },\n  \"itens\": [\n    {\n      \"sku\": \"DEMO-01\",\n      \"quantidade\": 3\n    },\n    {\n      \"sku\": \"DEMO-02\",\n      \"quantidade\": 1\n    }\n  ]\n}",
+    "differences": [
+      {
+        "id": "/apelido",
+        "path": "/apelido",
+        "kind": "NullChanged",
+        "risk": "informative",
+        "description": "O valor observado passou de null para uma string. A amostra anterior não define seu tipo contratual.",
+        "before": {
+          "text": "null",
+          "range": {
+            "from": 132,
+            "to": 136
+          }
+        },
+        "after": {
+          "text": "\"Mari\"",
+          "range": {
+            "from": 181,
+            "to": 187
+          }
+        }
+      },
+      {
+        "id": "/ativo",
+        "path": "/ativo",
+        "kind": "TypeChanged",
+        "risk": "potential",
+        "description": "O valor observado mudou de booleano para string. Consumidores podem depender do tipo anterior.",
+        "before": {
+          "text": "true",
+          "range": {
+            "from": 113,
+            "to": 117
+          }
+        },
+        "after": {
+          "text": "\"sim\"",
+          "range": {
+            "from": 161,
+            "to": 166
+          }
+        }
+      },
+      {
+        "id": "/cpf",
+        "path": "/cpf",
+        "kind": "PropertyRemoved",
+        "risk": "potential",
+        "description": "A propriedade cpf deixou de aparecer na amostra atualizada.",
+        "before": {
+          "text": "\"000.000.000-00\"",
+          "range": {
+            "from": 84,
+            "to": 100
+          }
+        },
+        "after": null
+      },
+      {
+        "id": "/documento",
+        "path": "/documento",
+        "kind": "PropertyAdded",
+        "risk": "informative",
+        "description": "A amostra atualizada apresenta uma nova propriedade documento.",
+        "before": null,
+        "after": {
+          "text": "{\n  \"tipo\": \"CPF\",\n  \"numero\": \"000.000.000-00\"\n}",
+          "range": {
+            "from": 93,
+            "to": 148
+          }
+        }
+      },
+      {
+        "id": "/itens/0/quantidade",
+        "path": "/itens/0/quantidade",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "A quantidade do primeiro item mudou de 2 para 3, mantendo o tipo number.",
+        "before": {
+          "text": "2",
+          "range": {
+            "from": 302,
+            "to": 303
+          }
+        },
+        "after": {
+          "text": "3",
+          "range": {
+            "from": 340,
+            "to": 341
+          }
+        }
+      },
+      {
+        "id": "/nome",
+        "path": "/nome",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O nome mudou, mantendo o tipo string.",
+        "before": {
+          "text": "\"Marina Exemplo\"",
+          "range": {
+            "from": 24,
+            "to": 40
+          }
+        },
+        "after": {
+          "text": "\"Marina de Exemplo\"",
+          "range": {
+            "from": 24,
+            "to": 43
+          }
+        }
+      },
+      {
+        "id": "/telefone",
+        "path": "/telefone",
+        "kind": "NullChanged",
+        "risk": "potential",
+        "description": "O valor observado passou de string para null. Consumidores podem depender de um valor utilizável.",
+        "before": {
+          "text": "\"(00) 00000-0000\"",
+          "range": {
+            "from": 152,
+            "to": 169
+          }
+        },
+        "after": {
+          "text": "null",
+          "range": {
+            "from": 203,
+            "to": 207
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "webhook",
+    "title": "Evento de webhook",
+    "subtitle": "Payload de integração com tipo alterado e novos campos.",
+    "letter": "02",
+    "before": "{\n  \"evento\": \"pedido.criado\",\n  \"versao\": 1,\n  \"pedido\": {\n    \"id\": \"PED-DEMO-1042\",\n    \"total\": 149.9,\n    \"moeda\": \"BRL\"\n  },\n  \"tentativa\": 1,\n  \"assinatura\": \"demonstracao\",\n  \"callback\": null\n}",
+    "after": "{\n  \"evento\": \"pedido.atualizado\",\n  \"versao\": 2,\n  \"pedido\": {\n    \"id\": \"PED-DEMO-1042\",\n    \"total\": \"149.90\",\n    \"moeda\": \"BRL\",\n    \"status\": \"confirmado\"\n  },\n  \"tentativa\": 2,\n  \"callback\": \"https://example.com/webhook\",\n  \"rastreio\": {\n    \"origem\": \"sandbox\"\n  }\n}",
+    "differences": [
+      {
+        "id": "/assinatura",
+        "path": "/assinatura",
+        "kind": "PropertyRemoved",
+        "risk": "potential",
+        "description": "A propriedade assinatura deixou de aparecer na amostra.",
+        "before": {
+          "text": "\"demonstracao\"",
+          "range": {
+            "from": 165,
+            "to": 179
+          }
+        },
+        "after": null
+      },
+      {
+        "id": "/callback",
+        "path": "/callback",
+        "kind": "NullChanged",
+        "risk": "informative",
+        "description": "O callback passou de null para uma URL fictícia.",
+        "before": {
+          "text": "null",
+          "range": {
+            "from": 195,
+            "to": 199
+          }
+        },
+        "after": {
+          "text": "\"https://example.com/webhook\"",
+          "range": {
+            "from": 198,
+            "to": 227
+          }
+        }
+      },
+      {
+        "id": "/evento",
+        "path": "/evento",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O nome do evento mudou, mantendo o tipo string.",
+        "before": {
+          "text": "\"pedido.criado\"",
+          "range": {
+            "from": 14,
+            "to": 29
+          }
+        },
+        "after": {
+          "text": "\"pedido.atualizado\"",
+          "range": {
+            "from": 14,
+            "to": 33
+          }
+        }
+      },
+      {
+        "id": "/pedido/status",
+        "path": "/pedido/status",
+        "kind": "PropertyAdded",
+        "risk": "informative",
+        "description": "A propriedade status apareceu no pedido.",
+        "before": null,
+        "after": {
+          "text": "\"confirmado\"",
+          "range": {
+            "from": 148,
+            "to": 160
+          }
+        }
+      },
+      {
+        "id": "/pedido/total",
+        "path": "/pedido/total",
+        "kind": "TypeChanged",
+        "risk": "potential",
+        "description": "O total passou de number para string.",
+        "before": {
+          "text": "149.9",
+          "range": {
+            "from": 100,
+            "to": 105
+          }
+        },
+        "after": {
+          "text": "\"149.90\"",
+          "range": {
+            "from": 104,
+            "to": 112
+          }
+        }
+      },
+      {
+        "id": "/rastreio",
+        "path": "/rastreio",
+        "kind": "PropertyAdded",
+        "risk": "informative",
+        "description": "Um objeto de rastreio foi adicionado.",
+        "before": null,
+        "after": {
+          "text": "{\n  \"origem\": \"sandbox\"\n}",
+          "range": {
+            "from": 243,
+            "to": 272
+          }
+        }
+      },
+      {
+        "id": "/tentativa",
+        "path": "/tentativa",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O número da tentativa mudou.",
+        "before": {
+          "text": "1",
+          "range": {
+            "from": 146,
+            "to": 147
+          }
+        },
+        "after": {
+          "text": "2",
+          "range": {
+            "from": 181,
+            "to": 182
+          }
+        }
+      },
+      {
+        "id": "/versao",
+        "path": "/versao",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "A versão observada mudou.",
+        "before": {
+          "text": "1",
+          "range": {
+            "from": 43,
+            "to": 44
+          }
+        },
+        "after": {
+          "text": "2",
+          "range": {
+            "from": 47,
+            "to": 48
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "configuracao",
+    "title": "Configuração de serviço",
+    "subtitle": "Opções e recursos; experimente a paginação no modo Conteúdo.",
+    "letter": "03",
+    "before": "{\n  \"ambiente\": \"sandbox\",\n  \"timeout\": 3000,\n  \"legado\": true,\n  \"recursos\": {\n    \"recurso_01\": false,\n    \"recurso_02\": false,\n    \"recurso_03\": false,\n    \"recurso_04\": false,\n    \"recurso_05\": false,\n    \"recurso_06\": false,\n    \"recurso_07\": false,\n    \"recurso_08\": false,\n    \"recurso_09\": false,\n    \"recurso_10\": false,\n    \"recurso_11\": false,\n    \"recurso_12\": false,\n    \"recurso_13\": false,\n    \"recurso_14\": false,\n    \"recurso_15\": false,\n    \"recurso_16\": false,\n    \"recurso_17\": false,\n    \"recurso_18\": false,\n    \"recurso_19\": false,\n    \"recurso_20\": false,\n    \"recurso_21\": false,\n    \"recurso_22\": false,\n    \"recurso_23\": false,\n    \"recurso_24\": false,\n    \"recurso_25\": false,\n    \"recurso_26\": false,\n    \"recurso_27\": false,\n    \"recurso_28\": false\n  }\n}",
+    "after": "{\n  \"ambiente\": \"demonstracao\",\n  \"timeout\": \"5s\",\n  \"observabilidade\": true,\n  \"recursos\": {\n    \"recurso_01\": true,\n    \"recurso_02\": true,\n    \"recurso_03\": true,\n    \"recurso_04\": true,\n    \"recurso_05\": true,\n    \"recurso_06\": true,\n    \"recurso_07\": true,\n    \"recurso_08\": true,\n    \"recurso_09\": true,\n    \"recurso_10\": true,\n    \"recurso_11\": true,\n    \"recurso_12\": true,\n    \"recurso_13\": true,\n    \"recurso_14\": true,\n    \"recurso_15\": true,\n    \"recurso_16\": true,\n    \"recurso_17\": true,\n    \"recurso_18\": true,\n    \"recurso_19\": true,\n    \"recurso_20\": true,\n    \"recurso_21\": true,\n    \"recurso_22\": true,\n    \"recurso_23\": true,\n    \"recurso_24\": true,\n    \"recurso_25\": true,\n    \"recurso_26\": true,\n    \"recurso_27\": true,\n    \"recurso_28\": true\n  }\n}",
+    "differences": [
+      {
+        "id": "/ambiente",
+        "path": "/ambiente",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O identificador do ambiente mudou.",
+        "before": {
+          "text": "\"sandbox\"",
+          "range": {
+            "from": 16,
+            "to": 25
+          }
+        },
+        "after": {
+          "text": "\"demonstracao\"",
+          "range": {
+            "from": 16,
+            "to": 30
+          }
+        }
+      },
+      {
+        "id": "/legado",
+        "path": "/legado",
+        "kind": "PropertyRemoved",
+        "risk": "potential",
+        "description": "A opção legado deixou de aparecer.",
+        "before": {
+          "text": "true",
+          "range": {
+            "from": 58,
+            "to": 62
+          }
+        },
+        "after": null
+      },
+      {
+        "id": "/observabilidade",
+        "path": "/observabilidade",
+        "kind": "PropertyAdded",
+        "risk": "informative",
+        "description": "A opção observabilidade foi adicionada.",
+        "before": null,
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 72,
+            "to": 76
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_01",
+        "path": "/recursos/recurso_01",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 01 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 98,
+            "to": 103
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 112,
+            "to": 116
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_02",
+        "path": "/recursos/recurso_02",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 02 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 123,
+            "to": 128
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 136,
+            "to": 140
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_03",
+        "path": "/recursos/recurso_03",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 03 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 148,
+            "to": 153
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 160,
+            "to": 164
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_04",
+        "path": "/recursos/recurso_04",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 04 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 173,
+            "to": 178
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 184,
+            "to": 188
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_05",
+        "path": "/recursos/recurso_05",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 05 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 198,
+            "to": 203
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 208,
+            "to": 212
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_06",
+        "path": "/recursos/recurso_06",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 06 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 223,
+            "to": 228
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 232,
+            "to": 236
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_07",
+        "path": "/recursos/recurso_07",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 07 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 248,
+            "to": 253
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 256,
+            "to": 260
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_08",
+        "path": "/recursos/recurso_08",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 08 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 273,
+            "to": 278
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 280,
+            "to": 284
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_09",
+        "path": "/recursos/recurso_09",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 09 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 298,
+            "to": 303
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 304,
+            "to": 308
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_10",
+        "path": "/recursos/recurso_10",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 10 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 323,
+            "to": 328
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 328,
+            "to": 332
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_11",
+        "path": "/recursos/recurso_11",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 11 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 348,
+            "to": 353
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 352,
+            "to": 356
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_12",
+        "path": "/recursos/recurso_12",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 12 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 373,
+            "to": 378
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 376,
+            "to": 380
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_13",
+        "path": "/recursos/recurso_13",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 13 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 398,
+            "to": 403
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 400,
+            "to": 404
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_14",
+        "path": "/recursos/recurso_14",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 14 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 423,
+            "to": 428
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 424,
+            "to": 428
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_15",
+        "path": "/recursos/recurso_15",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 15 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 448,
+            "to": 453
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 448,
+            "to": 452
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_16",
+        "path": "/recursos/recurso_16",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 16 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 473,
+            "to": 478
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 472,
+            "to": 476
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_17",
+        "path": "/recursos/recurso_17",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 17 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 498,
+            "to": 503
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 496,
+            "to": 500
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_18",
+        "path": "/recursos/recurso_18",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 18 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 523,
+            "to": 528
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 520,
+            "to": 524
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_19",
+        "path": "/recursos/recurso_19",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 19 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 548,
+            "to": 553
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 544,
+            "to": 548
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_20",
+        "path": "/recursos/recurso_20",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 20 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 573,
+            "to": 578
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 568,
+            "to": 572
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_21",
+        "path": "/recursos/recurso_21",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 21 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 598,
+            "to": 603
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 592,
+            "to": 596
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_22",
+        "path": "/recursos/recurso_22",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 22 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 623,
+            "to": 628
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 616,
+            "to": 620
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_23",
+        "path": "/recursos/recurso_23",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 23 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 648,
+            "to": 653
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 640,
+            "to": 644
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_24",
+        "path": "/recursos/recurso_24",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 24 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 673,
+            "to": 678
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 664,
+            "to": 668
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_25",
+        "path": "/recursos/recurso_25",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 25 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 698,
+            "to": 703
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 688,
+            "to": 692
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_26",
+        "path": "/recursos/recurso_26",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 26 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 723,
+            "to": 728
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 712,
+            "to": 716
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_27",
+        "path": "/recursos/recurso_27",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 27 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 748,
+            "to": 753
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 736,
+            "to": 740
+          }
+        }
+      },
+      {
+        "id": "/recursos/recurso_28",
+        "path": "/recursos/recurso_28",
+        "kind": "ValueChanged",
+        "risk": "informative",
+        "description": "O recurso 28 passou de false para true.",
+        "before": {
+          "text": "false",
+          "range": {
+            "from": 773,
+            "to": 778
+          }
+        },
+        "after": {
+          "text": "true",
+          "range": {
+            "from": 760,
+            "to": 764
+          }
+        }
+      },
+      {
+        "id": "/timeout",
+        "path": "/timeout",
+        "kind": "TypeChanged",
+        "risk": "potential",
+        "description": "O timeout passou de number para string.",
+        "before": {
+          "text": "3000",
+          "range": {
+            "from": 40,
+            "to": 44
+          }
+        },
+        "after": {
+          "text": "\"5s\"",
+          "range": {
+            "from": 45,
+            "to": 49
+          }
+        }
+      }
+    ]
+  }
+]

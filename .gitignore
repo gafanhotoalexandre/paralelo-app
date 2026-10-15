@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.artifacts/
+.env
+.env.*
+!.env.example
+*.local
+api_diff.rar
+reference/*.rar
+*.tsbuildinfo
+artifacts/
