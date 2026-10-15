@@ -4,7 +4,7 @@ import {
   ArrowRight,
   ArrowRightLeft,
   BookOpen,
-  Check,
+  LoaderCircle,
   ChevronRight,
   CircleHelp,
   Copy,
@@ -31,21 +31,20 @@ import { ArrayPolicy } from "@/components/ArrayPolicy";
 import { IconButton } from "@/components/IconButton";
 import { Inspector, RiskBadge } from "@/components/Inspector";
 import { JsonEditor, type EditorHandle } from "@/components/JsonEditor";
-import { examples, initialExample } from "@/demo/examples";
 import {
-  changeLabels,
-  differencesForMode,
-  filterDifferences,
-  isCurrentDemo,
-  PAGE_SIZE,
-  type ChangeKind,
-  type DemoDifference,
-  type DemoExample,
-  type Mode,
-  type Risk,
-  type Side,
-  type SourceRange,
-} from "@/demo/model";
+  examples,
+  initialExample,
+  type ExampleDocument,
+} from "@/demo/examples";
+import { useWorkbench } from "./useWorkbench";
+import { changeLabels, filterDifferences, PAGE_SIZE } from "./results";
+import type {
+  ChangeKind,
+  JsonDifference,
+  Risk,
+  Side,
+  SourceRange,
+} from "@/core/models";
 
 type Panel = Side | "differences";
 type Overlay = "examples" | "detail" | "help" | null;
@@ -63,14 +62,10 @@ export function App() {
   const after = useRef<EditorHandle>(null);
   const viewport = useViewport();
   const [example, setExample] = useState(initialExample);
-  const [mode, setMode] = useState<Mode>("structural");
-  const [comparedMode, setComparedMode] = useState<Mode>("structural");
-  const [hasResult, setHasResult] = useState(true);
-  const [stale, setStale] = useState(false);
   const [risk, setRisk] = useState<Risk | "all">("all");
   const [kind, setKind] = useState<ChangeKind | "all">("all");
   const [page, setPage] = useState(0);
-  const [selected, setSelected] = useState<DemoDifference | null>(null);
+  const [selected, setSelected] = useState<JsonDifference | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [sheetKind, setSheetKind] = useState<Exclude<Overlay, null>>("help");
   const [panel, setPanel] = useState<Panel>("before");
@@ -85,82 +80,57 @@ export function App() {
     null,
   );
   const refs = { before, after };
-  const differences = hasResult
-    ? differencesForMode(example, comparedMode)
-    : [];
-  const filtered = filterDifferences(differences, risk, kind);
-  const selectedIndex = selected
-    ? filtered.findIndex((d) => d.id === selected.id)
-    : -1;
   function notify(message: string) {
     clearTimeout(noticeTimer.current);
     setNotice(message);
     noticeTimer.current = setTimeout(() => setNotice(""), 4500);
   }
   useEffect(() => () => clearTimeout(noticeTimer.current), []);
+  const workbench = useWorkbench(refs, notify);
+  const { mode, result, stale, busy, issues, operationError } = workbench;
+  const hasResult = result !== null;
+  const comparedMode = result?.mode ?? mode;
+  const differences = result?.differences ?? [];
+  const filtered = filterDifferences(differences, risk, kind);
+  const selectedIndex = selected
+    ? filtered.findIndex((d) => d.id === selected.id)
+    : -1;
+  useEffect(() => {
+    if (!result) return;
+    setRisk("all");
+    setKind("all");
+    setPage(0);
+    setSelected(null);
+    setOverlay(null);
+    setExpanded(null);
+    if (window.innerWidth <= 1020) setPanel("differences");
+  }, [result]);
+  useEffect(() => {
+    const side = issues.some((e) => e.side === "before")
+      ? "before"
+      : issues.some((e) => e.side === "after")
+        ? "after"
+        : null;
+    if (!side) return;
+    setExpanded(null);
+    setPanel(side);
+    lastEditor.current = side;
+    requestAnimationFrame(() => refs[side].current?.focus());
+  }, [issues]);
   function open(which: Exclude<Overlay, null>) {
     lastTrigger.current = document.activeElement as HTMLElement;
     setSheetKind(which);
     setOverlay(which);
   }
-  function texts() {
-    return {
-      before: before.current?.getText() ?? "",
-      after: after.current?.getText() ?? "",
-    };
-  }
-  function resetResult() {
-    setRisk("all");
-    setKind("all");
-    setPage(0);
-    setSelected(null);
-    setStale(false);
-    setHasResult(true);
-    setExpanded(null);
-  }
-  function loadExample(next: DemoExample) {
-    before.current?.setText(next.before);
-    after.current?.setText(next.after);
+  function loadExample(next: ExampleDocument) {
+    if (!workbench.setDocuments(next.before, next.after)) return;
     setExample(next);
-    setComparedMode(mode);
-    resetResult();
     setOverlay(null);
-    if (viewport !== "desktop") setPanel("differences");
-    notify(`Exemplo “${next.title}” carregado.`);
-  }
-  function compareDemo() {
-    if (!isCurrentDemo(example, texts(), mode, mode)) {
-      notify(
-        "A comparação livre ainda não está disponível. Carregue um exemplo para explorar os resultados.",
-      );
-      return;
-    }
-    setComparedMode(mode);
-    resetResult();
-    if (viewport !== "desktop") setPanel("differences");
-    notify("Resultado demonstrativo atualizado.");
-  }
-  function edit() {
-    setStale(true);
-  }
-  function selectMode(value: string) {
-    if (value && value !== mode) {
-      setMode(value as Mode);
-      setStale(true);
-    }
-  }
-  function swap() {
-    const current = texts();
-    before.current?.setText(current.after);
-    after.current?.setText(current.before);
-    setStale(true);
-    notify("Documentos invertidos. O resultado anterior está desatualizado.");
+    void workbench.compare();
   }
   function clear() {
-    before.current?.setText("");
-    after.current?.setText("");
-    setHasResult(false);
-    setStale(false);
+    if (busy) return;
+    workbench.clear();
     setSelected(null);
     setRisk("all");
     setKind("all");
@@ -182,12 +152,8 @@ export function App() {
   }
   function locate(side: Side) {
     const snapshot = selected?.[side];
-    if (
-      !snapshot ||
-      stale ||
-      !isCurrentDemo(example, texts(), mode, comparedMode)
-    ) {
-      notify("A localização exige os documentos originais do exemplo.");
+    if (!snapshot || !workbench.canLocate(side, snapshot)) {
+      notify("Compare novamente para localizar esta diferença.");
       return;
     }
     pendingLocation.current = { side, range: snapshot.range };
@@ -197,8 +163,8 @@ export function App() {
     setOverlay(null);
   }
   function navigate(offset: number) {
-    const index = selectedIndex + offset;
-    const next = filtered[index];
+    const index = selectedIndex + offset,
+      next = filtered[index];
     if (next) {
       setSelected(next);
       setPage(Math.floor(index / PAGE_SIZE));
@@ -218,15 +184,29 @@ export function App() {
     if (panel === "differences") return false;
     return viewport === "tablet" || panel === side;
   }
+  function errorFor(side: Side) {
+    return issues
+      .filter((e) => e.side === side)
+      .map((e) => e.message)
+      .join(" ");
+  }
   return (
     <TooltipProvider delayDuration={350}>
       <div
         className="app"
         onKeyDown={(event) => {
-          if (overlay || event.nativeEvent.isComposing) return;
+          if (
+            overlay ||
+            busy ||
+            event.repeat ||
+            event.nativeEvent.isComposing ||
+            (event.target instanceof HTMLElement &&
+              event.target.closest('[role="dialog"], [role="listbox"]'))
+          )
+            return;
           if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
             event.preventDefault();
-            compareDemo();
+            void workbench.compare();
           }
           if (event.key === "Escape" && expanded) setExpanded(null);
         }}
@@ -236,7 +216,12 @@ export function App() {
         </a>
         <header className="topbar">
           <a href="#" className="brand" aria-label="Paralelo — início">
-            <img className="brand-mark" src="/brand-mark.svg" alt="" aria-hidden="true" />
+            <img
+              className="brand-mark"
+              src="/brand-mark.svg"
+              alt=""
+              aria-hidden="true"
+            />
             <span>Paralelo</span>
           </a>
           <span className="brand-caption">JSON / comparação</span>
@@ -247,6 +232,7 @@ export function App() {
             <Button
               variant="ghost"
               aria-label="Como funciona"
+              disabled={Boolean(busy)}
               onClick={() => open("help")}
             >
               <CircleHelp data-icon="inline-start" />
@@ -259,7 +245,15 @@ export function App() {
             <h1>Comparar documentos</h1>
             <p>Diferenças na estrutura e no conteúdo de duas respostas JSON.</p>
           </div>
-          <Badge variant="preview">Prévia de interface</Badge>
+          <Badge variant="preview">
+            {busy
+              ? "Processando…"
+              : stale && result
+                ? "Resultado desatualizado"
+                : result
+                  ? "Comparação concluída"
+                  : "Pronto para comparar"}
+          </Badge>
         </section>
         <div className="command" aria-label="Ferramentas de comparação">
           <div className="command-left">
@@ -267,22 +261,30 @@ export function App() {
             <ToggleGroup
               type="single"
               value={mode}
-              onValueChange={selectMode}
+              disabled={Boolean(busy)}
+              onValueChange={(value) => {
+                if (value) workbench.setMode(value as "structural" | "content");
+              }}
               aria-label="Modo de comparação"
             >
               <ToggleGroupItem value="structural">Estrutural</ToggleGroupItem>
               <ToggleGroupItem value="content">Conteúdo</ToggleGroupItem>
             </ToggleGroup>
-            <ArrayPolicy />
+            <ArrayPolicy disabled={Boolean(busy)} />
           </div>
           <div className="command-right">
-            <Button variant="outline" onClick={() => open("examples")}>
+            <Button
+              variant="outline"
+              disabled={Boolean(busy)}
+              onClick={() => open("examples")}
+            >
               <BookOpen data-icon="inline-start" />
               <span>Exemplos</span>
             </Button>
             <Button
               variant="outline"
-              onClick={swap}
+              disabled={Boolean(busy)}
+              onClick={workbench.swap}
               aria-label="Inverter documentos"
             >
               <ArrowRightLeft data-icon="inline-start" />
@@ -290,24 +292,54 @@ export function App() {
             </Button>
             <Button
               variant="ghost"
+              disabled={Boolean(busy)}
               onClick={clear}
               aria-label="Limpar documentos"
             >
               <Trash2 data-icon="inline-start" />
               <span className="action-label">Limpar</span>
             </Button>
-            <Button onClick={compareDemo}>
+            <Button
+              disabled={Boolean(busy)}
+              onClick={() => {
+                void workbench.compare();
+              }}
+            >
               <Play data-icon="inline-start" />
               Comparar<kbd>↵</kbd>
             </Button>
           </div>
         </div>
-        <div className="demo-notice">
-          <Info />
-          <span>
-            Resultados demonstrativos. A comparação de documentos livres, a
-            formatação e a exportação entram após a aprovação desta bancada.
-          </span>
+        <div className="operation-feedback" aria-live="polite">
+          {busy ? (
+            <>
+              <LoaderCircle className="processing-spinner" />
+              <span>
+                {busy === "compare"
+                  ? "Comparando documentos…"
+                  : busy === "format"
+                    ? "Formatando JSON…"
+                    : busy === "markdown"
+                      ? "Gerando relatório…"
+                      : "Importando documento…"}
+              </span>
+              <Button variant="ghost" size="sm" onClick={workbench.cancel}>
+                Cancelar
+              </Button>
+            </>
+          ) : (
+            <>
+              <Info />
+              <span>
+                {operationError ||
+                  issues
+                    .filter((e) => !e.side)
+                    .map((e) => e.message)
+                    .join(" ") ||
+                  "Até 1 MiB por documento. A análise compara amostras JSON."}
+              </span>
+            </>
+          )}
         </div>
         <Tabs
           value={
@@ -358,7 +390,15 @@ export function App() {
               visible={visible("before")}
               expanded={expanded === "before"}
               stale={stale || !hasResult}
-              onChange={edit}
+              busy={Boolean(busy)}
+              error={errorFor("before")}
+              onFormat={() => {
+                void workbench.format("before");
+              }}
+              onImport={(file) => {
+                void workbench.importFile("before", file);
+              }}
+              onChange={() => workbench.changed("before")}
               onFocus={() => {
                 lastEditor.current = "before";
               }}
@@ -377,7 +417,15 @@ export function App() {
               visible={visible("after")}
               expanded={expanded === "after"}
               stale={stale || !hasResult}
-              onChange={edit}
+              busy={Boolean(busy)}
+              error={errorFor("after")}
+              onFormat={() => {
+                void workbench.format("after");
+              }}
+              onImport={(file) => {
+                void workbench.importFile("after", file);
+              }}
+              onChange={() => workbench.changed("after")}
               onFocus={() => {
                 lastEditor.current = "after";
               }}
@@ -395,6 +443,10 @@ export function App() {
               !expanded && (viewport === "desktop" || panel === "differences")
             }
             hasResult={hasResult}
+            busy={Boolean(busy)}
+            onExport={() => {
+              void workbench.exportMarkdown();
+            }}
             stale={stale}
             mode={comparedMode}
             differences={differences}
@@ -428,8 +480,8 @@ export function App() {
             {stale && hasResult
               ? "Resultado desatualizado"
               : hasResult
-                ? "Exemplo carregado"
-                : "Documentos vazios"}
+                ? "Resultado atualizado"
+                : "Pronto para comparar"}
             <kbd>Ctrl / ⌘ + Enter</kbd>
           </span>
         </footer>
@@ -449,7 +501,12 @@ export function App() {
                 requestAnimationFrame(() =>
                   refs[target.side].current?.locate(target.range),
                 );
-              else lastTrigger.current?.focus();
+              else if (sheetKind === "detail" && selected)
+                document
+                  .getElementById(`difference-${differences.indexOf(selected)}`)
+                  ?.focus();
+              else if (lastTrigger.current?.isConnected)
+                lastTrigger.current.focus();
             }}
           >
             <SheetHeader>
@@ -503,9 +560,9 @@ export function App() {
                   <section>
                     <h3>Comece pelos exemplos</h3>
                     <p>
-                      Os três cenários apresentam diferenças fixas para você
-                      avaliar a experiência. Escolha Estrutural ou Conteúdo e
-                      clique em Comparar para reapresentar o cenário nesse modo.
+                      Carregue um cenário fictício para comparar
+                      automaticamente. Para seus documentos, escolha Estrutural
+                      ou Conteúdo e clique em Comparar.
                     </p>
                   </section>
                   <section>
@@ -521,17 +578,17 @@ export function App() {
                     <p>
                       Os editores são reais. Você pode digitar, importar UTF-8,
                       copiar, desfazer e ampliar. Alterações tornam o resultado
-                      anterior desatualizado. A comparação de textos livres
-                      ainda não está implementada.
+                      anterior desatualizado. Compare novamente para atualizar o
+                      resultado.
                     </p>
                   </section>
                   <section>
                     <h3>Arrays e classificações</h3>
                     <p>
-                      A análise planejada compara arrays por índice.
-                      Reordenações podem gerar diferenças. “Informativa” não
-                      garante compatibilidade; uma amostra não comprova quebra
-                      de contrato.
+                      A análise compara arrays por índice. Reordenações podem
+                      gerar diferenças. “Informativa” não garante
+                      compatibilidade; uma amostra não comprova quebra de
+                      contrato.
                     </p>
                   </section>
                   <section className="help-local">
@@ -540,8 +597,8 @@ export function App() {
                       <h3>Documentos neste navegador</h3>
                       <p>
                         Sem armazenamento, histórico ou envio dos seus JSONs.
-                        Formatação e relatório Markdown ficam para a etapa do
-                        motor.
+                        Formate cada documento separadamente e exporte todas as
+                        diferenças em Markdown.
                       </p>
                     </div>
                   </section>
@@ -562,20 +619,26 @@ export function App() {
                         <pre className={selected[side] ? undefined : "absent"}>
                           {selected[side]?.text ?? "Ausente"}
                         </pre>
+                        {selected[side]?.truncated && (
+                          <p className="preview-note">
+                            Prévia truncada em 512 caracteres. Localizar
+                            seleciona o valor completo.
+                          </p>
+                        )}
                       </section>
                     ))}
                   </div>
                   <div className="detail-actions">
                     <Button
                       variant="outline"
-                      disabled={stale || !selected.before}
+                      disabled={Boolean(busy) || stale || !selected.before}
                       onClick={() => locate("before")}
                     >
                       Localizar no original
                     </Button>
                     <Button
                       variant="outline"
-                      disabled={stale || !selected.after}
+                      disabled={Boolean(busy) || stale || !selected.after}
                       onClick={() => locate("after")}
                     >
                       Localizar no atualizado
@@ -627,7 +690,7 @@ export function App() {
                 <span className="drawer-footer-note">
                   {sheetKind === "examples"
                     ? "O modo selecionado será preservado."
-                    : "Paralelo · prévia de interface"}
+                    : "Paralelo · processamento local"}
                 </span>
               )}
               <SheetClose asChild>
@@ -646,7 +709,7 @@ export function App() {
         >
           {notice && (
             <>
-              <Check />
+              <Info />
               <span>{notice}</span>
             </>
           )}

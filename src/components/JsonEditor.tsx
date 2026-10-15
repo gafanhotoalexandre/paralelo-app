@@ -6,7 +6,12 @@ import {
   useState,
   type Ref,
 } from "react";
-import { EditorState, StateEffect, StateField } from "@codemirror/state";
+import {
+  Compartment,
+  EditorState,
+  StateEffect,
+  StateField,
+} from "@codemirror/state";
 import {
   Decoration,
   EditorView,
@@ -28,10 +33,11 @@ import { json } from "@codemirror/lang-json";
 import { tags } from "@lezer/highlight";
 import { Braces, Copy, Maximize2, Minimize2, Upload } from "lucide-react";
 import { IconButton } from "./IconButton";
-import type { Side, SourceRange } from "@/demo/model";
+import type { Side, SourceRange } from "@/core/models";
 
 export interface EditorHandle {
   getText(): string;
+  getLength(): number;
   setText(text: string): void;
   focus(): void;
   locate(range: SourceRange): void;
@@ -43,6 +49,10 @@ interface Props {
   visible: boolean;
   expanded: boolean;
   stale: boolean;
+  busy: boolean;
+  error?: string;
+  onFormat(): void;
+  onImport(file: File): void;
   onChange(): void;
   onFocus(): void;
   onExpand(): void;
@@ -63,7 +73,7 @@ const locatedRange = StateField.define<DecorationSet>({
       const endLine = transaction.state.doc.lineAt(
         Math.max(from, to - 1),
       ).number;
-      for (let n = startLine; n <= endLine; n++)
+      for (let n = startLine; n <= Math.min(endLine, startLine + 199); n++)
         decorations.push(
           Decoration.line({ class: "cm-located-line" }).range(
             transaction.state.doc.line(n).from,
@@ -95,7 +105,7 @@ const editorTheme = EditorView.theme({
   ".cm-line": { padding: "0 17px 0 13px" },
   ".cm-gutters": {
     backgroundColor: "#fafbf9",
-    color: "#718580",
+    color: "#5d706d",
     borderRight: "1px solid #edf0ec",
     minWidth: "42px",
   },
@@ -115,6 +125,7 @@ export function JsonEditor(props: Props) {
   useLayoutEffect(() => {
     callbacks.current = props;
   });
+  const [configuration] = useState(() => new Compartment());
   const fileInput = useRef<HTMLInputElement>(null);
   const [metrics, setMetrics] = useState({
     line: 1,
@@ -128,6 +139,10 @@ export function JsonEditor(props: Props) {
       state: EditorState.create({
         doc: props.initialText,
         extensions: [
+          configuration.of([
+            EditorState.readOnly.of(false),
+            EditorView.editable.of(true),
+          ]),
           lineNumbers(),
           history(),
           drawSelection(),
@@ -185,10 +200,23 @@ export function JsonEditor(props: Props) {
   useEffect(() => {
     if (props.visible) view.current?.requestMeasure();
   }, [props.visible, props.expanded]);
+  useEffect(() => {
+    view.current?.dispatch({
+      effects: configuration.reconfigure([
+        EditorState.readOnly.of(props.busy),
+        EditorView.editable.of(!props.busy),
+        EditorView.contentAttributes.of({
+          "aria-invalid": props.error ? "true" : "false",
+          "aria-describedby": props.error ? `error-${props.side}` : "",
+        }),
+      ]),
+    });
+  }, [props.busy, props.error, configuration, props.side]);
   useImperativeHandle(
     props.ref,
     () => ({
       getText: () => view.current?.state.doc.toString() ?? "",
+      getLength: () => view.current?.state.doc.length ?? 0,
       setText(text) {
         const v = view.current;
         if (v)
@@ -219,30 +247,6 @@ export function JsonEditor(props: Props) {
     }),
     [],
   );
-  async function importFile(file?: File) {
-    if (!file) return;
-    if (file.size > 1024 * 1024) {
-      props.onNotice("O arquivo ultrapassa 1 MiB. O documento foi preservado.");
-      return;
-    }
-    try {
-      const text = new TextDecoder("utf-8", { fatal: true }).decode(
-        await file.arrayBuffer(),
-      );
-      const v = view.current!;
-      v.dispatch({
-        changes: { from: 0, to: v.state.doc.length, insert: text },
-        selection: { anchor: 0 },
-      });
-      props.onNotice(
-        "Documento importado. A comparação livre ainda não está disponível nesta prévia.",
-      );
-    } catch {
-      props.onNotice(
-        "Não foi possível ler o arquivo como UTF-8. O documento foi preservado.",
-      );
-    }
-  }
   return (
     <article
       className="editor"
@@ -272,26 +276,31 @@ export function JsonEditor(props: Props) {
             ref={fileInput}
             type="file"
             accept=".json,application/json"
+            disabled={props.busy}
             hidden
             onChange={(event) => {
-              void importFile(event.target.files?.[0]);
+              const file = event.target.files?.[0];
+              if (file) props.onImport(file);
               event.target.value = "";
             }}
           />
           <IconButton
             label={`Importar JSON ${label}`}
+            disabled={props.busy}
             onClick={() => fileInput.current?.click()}
           >
             <Upload />
           </IconButton>
           <IconButton
-            label="Formatar JSON — disponível após a etapa do motor"
-            disabled
+            label={`Formatar JSON ${label}`}
+            onClick={props.onFormat}
+            disabled={props.busy}
           >
             <Braces />
           </IconButton>
           <IconButton
             label={`Copiar JSON ${label}`}
+            disabled={props.busy}
             onClick={() =>
               props.onCopy(view.current?.state.doc.toString() ?? "")
             }
@@ -300,21 +309,31 @@ export function JsonEditor(props: Props) {
           </IconButton>
           <IconButton
             label={`${props.expanded ? "Restaurar" : "Ampliar"} editor ${label}`}
+            disabled={props.busy}
             onClick={props.onExpand}
           >
             {props.expanded ? <Minimize2 /> : <Maximize2 />}
           </IconButton>
         </div>
       </header>
+      {props.error && (
+        <div className="editor-error" id={`error-${props.side}`} role="alert">
+          {props.error}
+        </div>
+      )}
       <div className="editor-code" ref={container} />
       <footer className="editor-footer">
         <span className="editor-state">
           <i />
           {metrics.length === 0
             ? "Sem conteúdo"
-            : props.stale
-              ? "Documento editável"
-              : "Exemplo demonstrativo"}
+            : props.busy
+              ? "Processando…"
+              : props.error
+                ? "Verifique o documento"
+                : props.stale
+                  ? "A comparar"
+                  : "Comparado"}
         </span>
         <span>
           Ln {metrics.line} / {metrics.lines}

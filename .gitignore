@@ -12,3 +12,4 @@ api_diff.rar
 reference/*.rar
 *.tsbuildinfo
 artifacts/
+debug.log

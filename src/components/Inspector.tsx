@@ -22,24 +22,26 @@ import {
   EmptyTitle,
 } from "./ui/empty";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { IconButton } from "./IconButton";
 import {
-  changeLabels,
-  PAGE_SIZE,
-  pageDifferences,
-  type ChangeKind,
-  type DemoDifference,
-  type Mode,
-  type Risk,
-} from "@/demo/model";
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { IconButton } from "./IconButton";
+import { changeLabels, PAGE_SIZE, pageDifferences } from "@/app/results";
+import type { ChangeKind, JsonDifference, Mode, Risk } from "@/core/models";
 interface Props {
   visible: boolean;
   hasResult: boolean;
+  busy: boolean;
+  onExport(): void;
   stale: boolean;
   mode: Mode;
-  differences: readonly DemoDifference[];
-  filtered: readonly DemoDifference[];
+  differences: readonly JsonDifference[];
+  filtered: readonly JsonDifference[];
   risk: Risk | "all";
   kind: ChangeKind | "all";
   page: number;
@@ -47,7 +49,7 @@ interface Props {
   onRisk(value: Risk | "all"): void;
   onKind(value: ChangeKind | "all"): void;
   onPage(page: number): void;
-  onSelect(difference: DemoDifference): void;
+  onSelect(difference: JsonDifference): void;
   onExamples(): void;
 }
 export function RiskBadge({
@@ -65,7 +67,7 @@ export function RiskBadge({
     </Badge>
   );
 }
-function ChangeIcon({ difference }: { difference: DemoDifference }) {
+function ChangeIcon({ difference }: { difference: JsonDifference }) {
   const Icon = difference.kind.endsWith("Added")
     ? Plus
     : difference.kind.endsWith("Removed")
@@ -104,8 +106,9 @@ export function Inspector(p: Props) {
             </p>
           </div>
           <IconButton
-            label="Exportar Markdown — disponível após a etapa do motor"
-            disabled
+            label="Exportar relatório Markdown"
+            disabled={p.busy || p.stale || !p.hasResult}
+            onClick={p.onExport}
           >
             <Download />
           </IconButton>
@@ -116,11 +119,15 @@ export function Inspector(p: Props) {
           </strong>
           <div>
             <strong>
-              {p.hasResult ? "diferenças demonstrativas" : "Nenhuma comparação"}
+              {p.hasResult
+                ? p.differences.length
+                  ? "diferenças identificadas"
+                  : "Nenhuma diferença"
+                : "Nenhuma comparação"}
             </strong>
             <span>
               {p.hasResult
-                ? "entre os documentos do exemplo"
+                ? "entre os documentos"
                 : "Carregue um exemplo para experimentar"}
             </span>
           </div>
@@ -143,6 +150,7 @@ export function Inspector(p: Props) {
       <div className="inspector-filters">
         <ToggleGroup
           className="risk-filter"
+          disabled={p.busy}
           type="single"
           value={p.risk}
           onValueChange={(value) => {
@@ -154,8 +162,27 @@ export function Inspector(p: Props) {
           <ToggleGroupItem value="potential">Potenciais</ToggleGroupItem>
           <ToggleGroupItem value="informative">Informativas</ToggleGroupItem>
         </ToggleGroup>
-        <div className="kind-filter"><ListFilter aria-hidden="true" />
-          <Select value={p.kind} onValueChange={value => p.onKind(value as ChangeKind | 'all')}><SelectTrigger aria-label="Tipo de alteração"><SelectValue /></SelectTrigger><SelectContent position="popper" align="start"><SelectGroup><SelectItem value="all">Todos os tipos</SelectItem>{Object.entries(changeLabels).map(([value,text]) => <SelectItem value={value} key={value}>{text}</SelectItem>)}</SelectGroup></SelectContent></Select>
+        <div className="kind-filter">
+          <ListFilter aria-hidden="true" />
+          <Select
+            disabled={p.busy}
+            value={p.kind}
+            onValueChange={(value) => p.onKind(value as ChangeKind | "all")}
+          >
+            <SelectTrigger aria-label="Tipo de alteração">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent position="popper" align="start">
+              <SelectGroup>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                {Object.entries(changeLabels).map(([value, text]) => (
+                  <SelectItem value={value} key={value}>
+                    {text}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
           <span>{p.filtered.length}</span>
         </div>
       </div>
@@ -164,8 +191,10 @@ export function Inspector(p: Props) {
           pageDifferences(p.filtered, p.page).map((d) => (
             <Button
               key={d.id}
+              id={`difference-${p.differences.indexOf(d)}`}
               variant="row"
               className={p.selected === d.id ? "selected" : undefined}
+              disabled={p.busy}
               onClick={() => p.onSelect(d)}
               aria-label={`${d.path || "(raiz)"} — ${changeLabels[d.kind]}`}
             >
@@ -195,17 +224,29 @@ export function Inspector(p: Props) {
               </EmptyMedia>
               <EmptyTitle>
                 {p.hasResult
-                  ? "Nenhuma diferença neste filtro"
-                  : "Escolha um exemplo"}
+                  ? p.differences.length
+                    ? "Nenhuma diferença neste filtro"
+                    : p.mode === "structural"
+                      ? "Nenhuma diferença estrutural"
+                      : "Nenhuma diferença encontrada"
+                  : p.busy
+                    ? "Comparando documentos…"
+                    : "Pronto para comparar"}
               </EmptyTitle>
               <EmptyDescription>
                 {p.hasResult
-                  ? "Tente outra classificação ou tipo de alteração."
-                  : "Explore a bancada com documentos fictícios e resultados demonstrativos."}
+                  ? p.differences.length
+                    ? "Tente outra classificação ou tipo de alteração."
+                    : "Os documentos são equivalentes no modo selecionado."
+                  : "Cole ou importe seus documentos, ou carregue um exemplo."}
               </EmptyDescription>
             </EmptyHeader>
             {!p.hasResult && (
-              <Button variant="outline" onClick={p.onExamples}>
+              <Button
+                variant="outline"
+                disabled={p.busy}
+                onClick={p.onExamples}
+              >
                 Carregar exemplo
               </Button>
             )}
@@ -221,7 +262,7 @@ export function Inspector(p: Props) {
         <div>
           <IconButton
             label="Página anterior"
-            disabled={p.page === 0}
+            disabled={p.busy || p.page === 0}
             onClick={() => p.onPage(p.page - 1)}
           >
             <ChevronLeft />
@@ -231,7 +272,7 @@ export function Inspector(p: Props) {
           </span>
           <IconButton
             label="Próxima página"
-            disabled={p.page + 1 >= pages}
+            disabled={p.busy || p.page + 1 >= pages}
             onClick={() => p.onPage(p.page + 1)}
           >
             <ChevronRight />

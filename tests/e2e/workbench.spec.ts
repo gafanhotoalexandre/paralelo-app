@@ -108,7 +108,9 @@ test("classification and kind intersect; navigation crosses the 25-item page bou
   await page.goto("/");
   await page.getByRole("radio", { name: "Potenciais", exact: true }).click();
   await page.getByRole("combobox", { name: "Tipo de alteração" }).click();
-  await page.getByRole("option", { name: "Transição envolvendo null", exact: true }).click();
+  await page
+    .getByRole("option", { name: "Transição envolvendo null", exact: true })
+    .click();
   await expect(page.getByTestId("diff-list").getByRole("button")).toHaveCount(
     1,
   );
@@ -116,7 +118,9 @@ test("classification and kind intersect; navigation crosses the 25-item page bou
   await page.getByRole("radio", { name: "Informativas", exact: true }).click();
   await expect(page.getByTestId("diff-list")).toContainText("/apelido");
   await page.getByRole("combobox", { name: "Tipo de alteração" }).click();
-  await page.getByRole("option", { name: "Propriedade removida", exact: true }).click();
+  await page
+    .getByRole("option", { name: "Propriedade removida", exact: true })
+    .click();
   await expect(page.getByText("Nenhuma diferença neste filtro")).toBeVisible();
   await page.getByRole("radio", { name: "Conteúdo", exact: true }).click();
   await page.getByRole("button", { name: "Exemplos", exact: true }).click();
@@ -135,6 +139,12 @@ test("classification and kind intersect; navigation crosses the 25-item page bou
     7,
   );
   await expect(page.getByText("26–32 de 32")).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: "/recursos/recurso_23 — Valor alterado",
+      exact: true,
+    }),
+  ).toBeFocused();
   await page
     .getByRole("button", { name: "Página anterior", exact: true })
     .click();
@@ -170,8 +180,10 @@ test("editor instances, selection, undo and text survive tabs, resize and expans
   await page.keyboard.press("Control+End");
   await page.keyboard.type("DEMO_EDIT");
   await expect(
-    page.getByText("Resultado desatualizado", { exact: true }),
-  ).toBeHidden();
+    page
+      .locator(".work-heading")
+      .getByText("Resultado desatualizado", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Ampliar editor original" }).click();
   await expect(
     page.getByRole("button", { name: "Restaurar editor original" }),
@@ -182,7 +194,7 @@ test("editor instances, selection, undo and text survive tabs, resize and expans
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: /^Comparar/ }).click();
   await expect(
-    page.getByText("Resultado demonstrativo atualizado.", { exact: true }),
+    page.getByText("Comparação concluída.", { exact: true }),
   ).toBeVisible();
   expect(await node!.evaluate((element) => element.isConnected)).toBe(true);
   await original.click();
@@ -199,11 +211,9 @@ test("near-1 MiB Unicode import remains editable; oversized and invalid UTF-8 fi
 }) => {
   test.setTimeout(45000);
   await page.goto("/");
-  await page
-    .context()
-    .grantPermissions(["clipboard-read", "clipboard-write"], {
-      origin: "http://127.0.0.1:5184",
-    });
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: "http://127.0.0.1:5184",
+  });
   const input = page.getByTestId("editor-before").locator("input[type=file]");
   const unicode = '"' + "🧪".repeat(260000) + '"';
   await input.setInputFiles({
@@ -230,13 +240,17 @@ test("near-1 MiB Unicode import remains editable; oversized and invalid UTF-8 fi
     mimeType: "application/json",
     buffer: Buffer.alloc(1024 * 1024 + 1, 32),
   });
-  await expect(page.getByRole("status")).toContainText("ultrapassa 1 MiB");
+  await expect(
+    page.getByTestId("editor-before").getByRole("alert"),
+  ).toContainText("ultrapassa 1 MiB");
   await input.setInputFiles({
     name: "invalid.json",
     mimeType: "application/json",
     buffer: Buffer.from([0xff, 0xfe, 0xff]),
   });
-  await expect(page.getByRole("status")).toContainText("como UTF-8");
+  await expect(
+    page.getByTestId("editor-before").getByRole("alert"),
+  ).toContainText("como UTF-8");
   await expect(page.getByTestId("total-count")).toHaveText("05");
   await page
     .getByRole("button", { name: "Copiar JSON original", exact: true })
@@ -358,26 +372,43 @@ test("scroll and keyboard navigation survive hidden panels; 200% zoom stays usab
   });
 });
 
-
-test('array explanation works with hover, keyboard and touch; filter list and brand are consistent', async ({ page }) => {
-  await page.goto('/')
-  const policy = page.getByRole('button', { name: 'Como arrays são comparados' })
-  await policy.hover()
-  await expect(page.getByRole('tooltip')).toContainText('pela posição')
-  await policy.click()
-  await expect(page.getByRole('dialog', { name: 'Comparação de arrays' })).toContainText('Reordenar')
-  await page.keyboard.press('Escape')
-  await expect(policy).toBeFocused()
-  const select = page.getByRole('combobox', { name: 'Tipo de alteração' })
-  await select.click()
-  await expect(page.getByRole('listbox')).toBeVisible()
-  await page.keyboard.press('End'); await expect(page.getByRole('option', { name: 'Valor alterado', exact: true })).toBeFocused(); await page.keyboard.press('Enter')
-  await expect(select).toContainText('Valor alterado')
-  await select.click(); await expect(page.getByRole('listbox')).toBeVisible(); await page.keyboard.press('Home'); await expect(page.getByRole('option', { name: 'Todos os tipos', exact: true })).toBeFocused(); await page.keyboard.press('Enter')
-  await expect(select).toContainText('Todos os tipos')
-  const logo = await page.locator('.brand img').getAttribute('src')
-  expect(await page.locator('link[rel=icon]').getAttribute('href')).toBe(logo)
-  await page.setViewportSize({ width: 360, height: 800 })
-  await policy.click()
-  await expect(page.getByRole('dialog', { name: 'Comparação de arrays' })).toBeVisible()
-})
+test("array explanation works with hover, keyboard and touch; filter list and brand are consistent", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const policy = page.getByRole("button", {
+    name: "Como arrays são comparados",
+  });
+  await policy.hover();
+  await expect(page.getByRole("tooltip")).toContainText("pela posição");
+  await policy.click();
+  await expect(
+    page.getByRole("dialog", { name: "Comparação de arrays" }),
+  ).toContainText("Reordenar");
+  await page.keyboard.press("Escape");
+  await expect(policy).toBeFocused();
+  const select = page.getByRole("combobox", { name: "Tipo de alteração" });
+  await select.click();
+  await expect(page.getByRole("listbox")).toBeVisible();
+  await page.keyboard.press("End");
+  await expect(
+    page.getByRole("option", { name: "Valor alterado", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(select).toContainText("Valor alterado");
+  await select.click();
+  await expect(page.getByRole("listbox")).toBeVisible();
+  await page.keyboard.press("Home");
+  await expect(
+    page.getByRole("option", { name: "Todos os tipos", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(select).toContainText("Todos os tipos");
+  const logo = await page.locator(".brand img").getAttribute("src");
+  expect(await page.locator("link[rel=icon]").getAttribute("href")).toBe(logo);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await policy.click();
+  await expect(
+    page.getByRole("dialog", { name: "Comparação de arrays" }),
+  ).toBeVisible();
+});

@@ -401,7 +401,7 @@ kbd {
   font: 11px var(--font-mono);
   border-radius: 5px;
   background: #eef2ef;
-  color: #627a73;
+  color: var(--muted-foreground);
   padding: 6px 7px;
 }
 .editor h2 {
@@ -1342,13 +1342,126 @@ kbd {
 }
 
 /* Contextual controls share the workbench palette. */
-.array-policy { border-left: 1px solid var(--border); border-radius: 0; margin-left: 8px; color: var(--muted-foreground); font-size: 12px; padding-left: 15px; }
-.policy-tooltip { max-width: min(320px,calc(100vw - 24px)); line-height: 1.7; }
-[data-slot=popover-content] { background: #fff; color: var(--foreground); border-color: var(--border); max-width: calc(100vw - 24px); font-family: var(--font-sans); font-size: 12px; line-height: 1.7; }
-[data-slot=popover-title] { color: var(--foreground); font-size: 13px; margin-bottom: 5px; }
-.kind-filter [data-slot=select-trigger] { flex: 1; width: 100%; min-width: 0; height: 28px; padding: 4px 0; border: 0; box-shadow: none; font-size: 11px; color: #42565a; }
-[data-slot=select-content] { background: #fff; color: var(--foreground); border-color: var(--border); max-height: min(340px,var(--radix-select-content-available-height)); font-family: var(--font-sans); box-shadow: 0 8px 28px #2031351a; }
-[data-slot=select-item] { padding-block: 9px; font-size: 12px; cursor: pointer; }
-[data-slot=select-item][data-highlighted] { background: var(--accent); color: var(--accent-foreground); }
-@media (max-width:1020px) { .array-policy { margin-left: 0; padding-inline: 8px; } .array-policy span { display: none; } }
-@media (max-width:720px) { .command-left [data-slot=toggle-group] { flex: 1; width: auto; } }
+.array-policy {
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  margin-left: 8px;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  padding-left: 15px;
+}
+.policy-tooltip {
+  max-width: min(320px, calc(100vw - 24px));
+  line-height: 1.7;
+}
+[data-slot="popover-content"] {
+  background: #fff;
+  color: var(--foreground);
+  border-color: var(--border);
+  max-width: calc(100vw - 24px);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.7;
+}
+[data-slot="popover-title"] {
+  color: var(--foreground);
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+.kind-filter [data-slot="select-trigger"] {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 4px 0;
+  border: 0;
+  box-shadow: none;
+  font-size: 11px;
+  color: #42565a;
+}
+[data-slot="select-content"] {
+  background: #fff;
+  color: var(--foreground);
+  border-color: var(--border);
+  max-height: min(340px, var(--radix-select-content-available-height));
+  font-family: var(--font-sans);
+  box-shadow: 0 8px 28px #2031351a;
+}
+[data-slot="select-item"] {
+  padding-block: 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+[data-slot="select-item"][data-highlighted] {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+@media (max-width: 1020px) {
+  .array-policy {
+    margin-left: 0;
+    padding-inline: 8px;
+  }
+  .array-policy span {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  .command-left [data-slot="toggle-group"] {
+    flex: 1;
+    width: auto;
+  }
+}
+
+.operation-feedback {
+  min-height: 34px;
+  padding: 7px 2px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.operation-feedback > svg {
+  width: 13px;
+  height: 16px;
+}
+.operation-feedback .button {
+  margin-left: auto;
+  min-height: 24px;
+}
+.editor-error {
+  padding: 9px 13px;
+  color: var(--risk);
+  background: var(--risk-soft);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.preview-note {
+  padding: 0 12px 12px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.processing-spinner {
+  animation: processing 1s linear infinite;
+}
+@keyframes processing {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .processing-spinner {
+    animation: none !important;
+  }
+}
+@media (max-width: 720px) {
+  .work-heading .badge-preview {
+    max-width: 145px;
+    white-space: normal;
+    text-align: center;
+  }
+  .operation-feedback {
+    font-size: 10.5px;
+  }
+}
