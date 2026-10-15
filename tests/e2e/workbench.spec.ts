@@ -107,14 +107,16 @@ test("classification and kind intersect; navigation crosses the 25-item page bou
 }) => {
   await page.goto("/");
   await page.getByRole("radio", { name: "Potenciais", exact: true }).click();
-  await page.getByLabel("Tipo de alteração").selectOption("NullChanged");
+  await page.getByRole("combobox", { name: "Tipo de alteração" }).click();
+  await page.getByRole("option", { name: "Transição envolvendo null", exact: true }).click();
   await expect(page.getByTestId("diff-list").getByRole("button")).toHaveCount(
     1,
   );
   await expect(page.getByTestId("diff-list")).toContainText("/telefone");
   await page.getByRole("radio", { name: "Informativas", exact: true }).click();
   await expect(page.getByTestId("diff-list")).toContainText("/apelido");
-  await page.getByLabel("Tipo de alteração").selectOption("PropertyRemoved");
+  await page.getByRole("combobox", { name: "Tipo de alteração" }).click();
+  await page.getByRole("option", { name: "Propriedade removida", exact: true }).click();
   await expect(page.getByText("Nenhuma diferença neste filtro")).toBeVisible();
   await page.getByRole("radio", { name: "Conteúdo", exact: true }).click();
   await page.getByRole("button", { name: "Exemplos", exact: true }).click();
@@ -355,3 +357,27 @@ test("scroll and keyboard navigation survive hidden panels; 200% zoom stays usab
     document.documentElement.style.zoom = "";
   });
 });
+
+
+test('array explanation works with hover, keyboard and touch; filter list and brand are consistent', async ({ page }) => {
+  await page.goto('/')
+  const policy = page.getByRole('button', { name: 'Como arrays são comparados' })
+  await policy.hover()
+  await expect(page.getByRole('tooltip')).toContainText('pela posição')
+  await policy.click()
+  await expect(page.getByRole('dialog', { name: 'Comparação de arrays' })).toContainText('Reordenar')
+  await page.keyboard.press('Escape')
+  await expect(policy).toBeFocused()
+  const select = page.getByRole('combobox', { name: 'Tipo de alteração' })
+  await select.click()
+  await expect(page.getByRole('listbox')).toBeVisible()
+  await page.keyboard.press('End'); await expect(page.getByRole('option', { name: 'Valor alterado', exact: true })).toBeFocused(); await page.keyboard.press('Enter')
+  await expect(select).toContainText('Valor alterado')
+  await select.click(); await expect(page.getByRole('listbox')).toBeVisible(); await page.keyboard.press('Home'); await expect(page.getByRole('option', { name: 'Todos os tipos', exact: true })).toBeFocused(); await page.keyboard.press('Enter')
+  await expect(select).toContainText('Todos os tipos')
+  const logo = await page.locator('.brand img').getAttribute('src')
+  expect(await page.locator('link[rel=icon]').getAttribute('href')).toBe(logo)
+  await page.setViewportSize({ width: 360, height: 800 })
+  await policy.click()
+  await expect(page.getByRole('dialog', { name: 'Comparação de arrays' })).toBeVisible()
+})

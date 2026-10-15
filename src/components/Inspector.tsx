@@ -22,6 +22,7 @@ import {
   EmptyTitle,
 } from "./ui/empty";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { IconButton } from "./IconButton";
 import {
   changeLabels,
@@ -153,23 +154,10 @@ export function Inspector(p: Props) {
           <ToggleGroupItem value="potential">Potenciais</ToggleGroupItem>
           <ToggleGroupItem value="informative">Informativas</ToggleGroupItem>
         </ToggleGroup>
-        <label className="kind-filter">
-          <ListFilter aria-hidden="true" />
-          <span className="sr-only">Tipo de alteração</span>
-          <select
-            aria-label="Tipo de alteração"
-            value={p.kind}
-            onChange={(e) => p.onKind(e.target.value as ChangeKind | "all")}
-          >
-            <option value="all">Todos os tipos</option>
-            {Object.entries(changeLabels).map(([value, text]) => (
-              <option value={value} key={value}>
-                {text}
-              </option>
-            ))}
-          </select>
+        <div className="kind-filter"><ListFilter aria-hidden="true" />
+          <Select value={p.kind} onValueChange={value => p.onKind(value as ChangeKind | 'all')}><SelectTrigger aria-label="Tipo de alteração"><SelectValue /></SelectTrigger><SelectContent position="popper" align="start"><SelectGroup><SelectItem value="all">Todos os tipos</SelectItem>{Object.entries(changeLabels).map(([value,text]) => <SelectItem value={value} key={value}>{text}</SelectItem>)}</SelectGroup></SelectContent></Select>
           <span>{p.filtered.length}</span>
-        </label>
+        </div>
       </div>
       <div className="diff-list" data-testid="diff-list">
         {p.filtered.length ? (

@@ -27,6 +27,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ArrayPolicy } from "@/components/ArrayPolicy";
 import { IconButton } from "@/components/IconButton";
 import { Inspector, RiskBadge } from "@/components/Inspector";
 import { JsonEditor, type EditorHandle } from "@/components/JsonEditor";
@@ -235,10 +236,7 @@ export function App() {
         </a>
         <header className="topbar">
           <a href="#" className="brand" aria-label="Paralelo — início">
-            <span className="brand-mark" aria-hidden="true">
-              <i />
-              <i />
-            </span>
+            <img className="brand-mark" src="/brand-mark.svg" alt="" aria-hidden="true" />
             <span>Paralelo</span>
           </a>
           <span className="brand-caption">JSON / comparação</span>
@@ -275,10 +273,7 @@ export function App() {
               <ToggleGroupItem value="structural">Estrutural</ToggleGroupItem>
               <ToggleGroupItem value="content">Conteúdo</ToggleGroupItem>
             </ToggleGroup>
-            <span className="command-policy">
-              <Info />
-              Arrays por índice
-            </span>
+            <ArrayPolicy />
           </div>
           <div className="command-right">
             <Button variant="outline" onClick={() => open("examples")}>
