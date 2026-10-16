@@ -109,7 +109,7 @@ test("classification and kind intersect; navigation crosses the 25-item page bou
   await page.getByRole("radio", { name: "Potenciais", exact: true }).click();
   await page.getByRole("combobox", { name: "Tipo de alteração" }).click();
   await page
-    .getByRole("option", { name: "Transição envolvendo null", exact: true })
+    .getByRole("option", { name: "Mudança envolvendo null", exact: true })
     .click();
   await expect(page.getByTestId("diff-list").getByRole("button")).toHaveCount(
     1,
@@ -194,7 +194,7 @@ test("editor instances, selection, undo and text survive tabs, resize and expans
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: /^Comparar/ }).click();
   await expect(
-    page.getByText("Comparação concluída.", { exact: true }),
+    page.getByTestId("editor-before").getByText("Comparado", { exact: true }),
   ).toBeVisible();
   expect(await node!.evaluate((element) => element.isConnected)).toBe(true);
   await original.click();
@@ -212,7 +212,7 @@ test("near-1 MiB Unicode import remains editable; oversized and invalid UTF-8 fi
   test.setTimeout(45000);
   await page.goto("/");
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
-    origin: "http://127.0.0.1:5184",
+    origin: "http://127.0.0.1:4184",
   });
   const input = page.getByTestId("editor-before").locator("input[type=file]");
   const unicode = '"' + "🧪".repeat(260000) + '"';
@@ -304,7 +304,7 @@ test("clipboard unavailable gives feedback; reduced motion and session isolation
   await expect(independent.getByTestId("total-count")).toHaveText("05");
   await expect(page.getByTestId("total-count")).toHaveText("00");
   expect(
-    requests.every((url) => url.startsWith("http://127.0.0.1:5184/")),
+    requests.every((url) => url.startsWith("http://127.0.0.1:4184/")),
   ).toBe(true);
   expect(
     await page.evaluate(() => ({
@@ -372,7 +372,7 @@ test("scroll and keyboard navigation survive hidden panels; 200% zoom stays usab
   });
 });
 
-test("array explanation works with hover, keyboard and touch; filter list and brand are consistent", async ({
+test("array explanation uses only a keyboard and touch popover; filter and brand are consistent", async ({
   page,
 }) => {
   await page.goto("/");
@@ -380,7 +380,8 @@ test("array explanation works with hover, keyboard and touch; filter list and br
     name: "Como arrays são comparados",
   });
   await policy.hover();
-  await expect(page.getByRole("tooltip")).toContainText("pela posição");
+  await page.waitForTimeout(450);
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
   await policy.click();
   await expect(
     page.getByRole("dialog", { name: "Comparação de arrays" }),

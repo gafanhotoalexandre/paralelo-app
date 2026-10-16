@@ -9,7 +9,7 @@ const labels: Record<ChangeKind, string> = {
   PropertyAdded: "Propriedade adicionada",
   PropertyRemoved: "Propriedade removida",
   TypeChanged: "Tipo alterado",
-  NullChanged: "Transição envolvendo null",
+  NullChanged: "Mudança envolvendo null",
   ArrayItemAdded: "Elemento adicionado ao array",
   ArrayItemRemoved: "Elemento removido do array",
   ValueChanged: "Valor alterado",

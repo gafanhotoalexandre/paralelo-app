@@ -37,8 +37,10 @@ interface Props {
   visible: boolean;
   hasResult: boolean;
   busy: boolean;
+  processing: boolean;
   onExport(): void;
   stale: boolean;
+  displayStale: boolean;
   mode: Mode;
   differences: readonly JsonDifference[];
   filtered: readonly JsonDifference[];
@@ -108,6 +110,7 @@ export function Inspector(p: Props) {
           <IconButton
             label="Exportar relatório Markdown"
             disabled={p.busy || p.stale || !p.hasResult}
+            data-operation-disabled={p.busy && !p.stale && p.hasResult}
             onClick={p.onExport}
           >
             <Download />
@@ -121,14 +124,12 @@ export function Inspector(p: Props) {
             <strong>
               {p.hasResult
                 ? p.differences.length
-                  ? "diferenças identificadas"
+                  ? "diferenças encontradas"
                   : "Nenhuma diferença"
                 : "Nenhuma comparação"}
             </strong>
             <span>
-              {p.hasResult
-                ? "entre os documentos"
-                : "Carregue um exemplo para experimentar"}
+              {!p.hasResult && "Carregue um exemplo para experimentar"}
             </span>
           </div>
         </div>
@@ -139,7 +140,7 @@ export function Inspector(p: Props) {
           </RiskBadge>
         </div>
       </div>
-      {p.stale && p.hasResult && (
+      {p.displayStale && p.hasResult && (
         <Alert className="stale-alert">
           <TriangleAlert />
           <AlertDescription>
@@ -151,6 +152,7 @@ export function Inspector(p: Props) {
         <ToggleGroup
           className="risk-filter"
           disabled={p.busy}
+          data-operation-disabled={p.busy}
           type="single"
           value={p.risk}
           onValueChange={(value) => {
@@ -166,10 +168,14 @@ export function Inspector(p: Props) {
           <ListFilter aria-hidden="true" />
           <Select
             disabled={p.busy}
+            data-operation-disabled={p.busy}
             value={p.kind}
             onValueChange={(value) => p.onKind(value as ChangeKind | "all")}
           >
-            <SelectTrigger aria-label="Tipo de alteração">
+            <SelectTrigger
+              data-operation-disabled={p.busy}
+              aria-label="Tipo de alteração"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent position="popper" align="start">
@@ -195,6 +201,7 @@ export function Inspector(p: Props) {
               variant="row"
               className={p.selected === d.id ? "selected" : undefined}
               disabled={p.busy}
+              data-operation-disabled={p.busy}
               onClick={() => p.onSelect(d)}
               aria-label={`${d.path || "(raiz)"} — ${changeLabels[d.kind]}`}
             >
@@ -229,7 +236,7 @@ export function Inspector(p: Props) {
                     : p.mode === "structural"
                       ? "Nenhuma diferença estrutural"
                       : "Nenhuma diferença encontrada"
-                  : p.busy
+                  : p.processing
                     ? "Comparando documentos…"
                     : "Pronto para comparar"}
               </EmptyTitle>
@@ -245,6 +252,7 @@ export function Inspector(p: Props) {
               <Button
                 variant="outline"
                 disabled={p.busy}
+                data-operation-disabled={p.busy}
                 onClick={p.onExamples}
               >
                 Carregar exemplo
@@ -263,6 +271,7 @@ export function Inspector(p: Props) {
           <IconButton
             label="Página anterior"
             disabled={p.busy || p.page === 0}
+            data-operation-disabled={p.busy && p.page !== 0}
             onClick={() => p.onPage(p.page - 1)}
           >
             <ChevronLeft />
@@ -273,6 +282,7 @@ export function Inspector(p: Props) {
           <IconButton
             label="Próxima página"
             disabled={p.busy || p.page + 1 >= pages}
+            data-operation-disabled={p.busy && p.page + 1 < pages}
             onClick={() => p.onPage(p.page + 1)}
           >
             <ChevronRight />

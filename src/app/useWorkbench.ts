@@ -7,7 +7,7 @@ import type {
   Side,
   Snapshot,
 } from "@/core/models";
-import { LIMITS } from "@/core/limits";
+import { LIMITS, utf8Length } from "@/core/limits";
 import { ComparisonWorkerClient, WorkerFailure } from "@/workers/client";
 import type { WorkerOperation } from "@/workers/protocol";
 interface Editors {
@@ -22,12 +22,17 @@ export function useWorkbench(
   const [result, setResult] = useState<JsonComparisonResult | null>(null);
   const [stale, setStale] = useState(false);
   const [busy, setBusy] = useState<WorkerOperation | "import" | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const processingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const [issues, setIssues] = useState<readonly ProcessingIssue[]>([]);
   const [operationError, setOperationError] = useState("");
   const client = useRef<ComparisonWorkerClient | null>(null);
   const revision = useRef(0),
     comparedRevision = useRef<number | null>(null),
     generation = useRef(0);
+  const staleBeforeOperation = useRef(false);
   const locked = useRef(false),
     mounted = useRef(false);
   function changed(side: Side) {
@@ -51,15 +56,21 @@ export function useWorkbench(
   function start(operation: WorkerOperation | "import") {
     if (locked.current || !client.current) return null;
     locked.current = true;
+    staleBeforeOperation.current = stale;
     const id = ++generation.current;
     setBusy(operation);
+    processingTimer.current = setTimeout(() => {
+      if (mounted.current && generation.current === id) setProcessing(true);
+    }, 150);
     setIssues([]);
     setOperationError("");
     return id;
   }
   function end(id: number) {
     if (mounted.current && generation.current === id) {
+      clearTimeout(processingTimer.current);
       locked.current = false;
+      setProcessing(false);
       setBusy(null);
     }
   }
@@ -77,12 +88,9 @@ export function useWorkbench(
   function read(side: Side) {
     return editors[side].current?.getText() ?? "";
   }
-  function oversized(sides: Side[]) {
-    const errors = sides
-      .filter(
-        (side) =>
-          (editors[side].current?.getLength() ?? 0) > LIMITS.documentBytes,
-      )
+  function oversized(documents: Partial<Record<Side, string>>) {
+    const errors = (Object.keys(documents) as Side[])
+      .filter((side) => utf8Length(documents[side]!) > LIMITS.documentBytes)
       .map((side) => ({
         code: "documentSize" as const,
         side,
@@ -95,11 +103,20 @@ export function useWorkbench(
     return false;
   }
   async function compare(selectedMode: Mode = mode) {
+    if (
+      locked.current ||
+      (result &&
+        !stale &&
+        comparedRevision.current === revision.current &&
+        result.mode === selectedMode)
+    )
+      return;
     const id = start("compare");
     if (id === null) return;
     const sourceRevision = revision.current;
     try {
-      if (oversized(["before", "after"])) {
+      const documents = { before: read("before"), after: read("after") };
+      if (oversized(documents)) {
         setStale(true);
         return;
       }
@@ -107,8 +124,7 @@ export function useWorkbench(
         operation: "compare",
         revision: sourceRevision,
         request: {
-          before: read("before"),
-          after: read("after"),
+          ...documents,
           mode: selectedMode,
         },
       });
@@ -123,13 +139,6 @@ export function useWorkbench(
         setResult(response.response.result);
         comparedRevision.current = sourceRevision;
         setStale(false);
-        notify(
-          response.response.result.counts.total
-            ? "Comparação concluída."
-            : selectedMode === "structural"
-              ? "Nenhuma diferença estrutural."
-              : "Nenhuma diferença encontrada.",
-        );
       } else {
         setIssues(response.response.errors);
         setStale(true);
@@ -146,11 +155,12 @@ export function useWorkbench(
     if (id === null) return;
     const sourceRevision = revision.current;
     try {
-      if (oversized([side])) return;
+      const text = read(side);
+      if (oversized({ [side]: text })) return;
       const response = await client.current!.run({
         operation: "format",
         revision: sourceRevision,
-        request: { text: read(side), side },
+        request: { text, side },
       });
       if (
         !mounted.current ||
@@ -160,9 +170,12 @@ export function useWorkbench(
       )
         return;
       if (response.response.status === "success") {
-        editors[side].current?.setText(response.response.text);
-        setStale(true);
-        notify("JSON formatado. Compare novamente para atualizar o resultado.");
+        if (response.response.text !== read(side)) {
+          editors[side].current?.setText(response.response.text);
+          notify(
+            "JSON formatado. Compare novamente para atualizar o resultado.",
+          );
+        }
       } else setIssues(response.response.errors);
     } catch (error) {
       failed(error, id);
@@ -188,8 +201,10 @@ export function useWorkbench(
         await file.arrayBuffer(),
       );
       if (!mounted.current || generation.current !== id) return;
-      editors[side].current?.setText(text);
-      notify("Documento importado. Compare para atualizar o resultado.");
+      if (text !== read(side)) {
+        editors[side].current?.setText(text);
+        notify("Documento importado. Compare para atualizar o resultado.");
+      }
     } catch {
       if (mounted.current && generation.current === id)
         setIssues([
@@ -208,7 +223,7 @@ export function useWorkbench(
     if (locked.current) return false;
     editors.before.current?.setText(before);
     editors.after.current?.setText(after);
-    setIssues([]);
+    setIssues((previous) => (previous.length ? [] : previous));
     setOperationError("");
     return true;
   }
@@ -222,6 +237,7 @@ export function useWorkbench(
     if (locked.current) return;
     const a = read("before"),
       b = read("after");
+    if (a === b) return;
     setDocuments(b, a);
     setStale(true);
     notify("Documentos invertidos. Compare para atualizar o resultado.");
@@ -291,7 +307,9 @@ export function useWorkbench(
     if (!locked.current) return;
     generation.current++;
     client.current?.cancel();
+    clearTimeout(processingTimer.current);
     locked.current = false;
+    setProcessing(false);
     setBusy(null);
     const text = "Operação cancelada. Os documentos foram preservados.";
     setOperationError(text);
@@ -308,6 +326,7 @@ export function useWorkbench(
     });
     return () => {
       active = false;
+      clearTimeout(processingTimer.current);
       mounted.current = false;
       generation.current++;
       locked.current = false;
@@ -320,7 +339,9 @@ export function useWorkbench(
     setMode,
     result,
     stale,
+    displayStale: busy ? staleBeforeOperation.current : stale,
     busy,
+    processing,
     issues,
     operationError,
     changed,

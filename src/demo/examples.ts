@@ -11,7 +11,7 @@ export const examples: readonly ExampleDocument[] = [
   {
     id: "cadastro",
     title: "Cadastro de cliente",
-    subtitle: "Propriedades, tipos e transições envolvendo null.",
+    subtitle: "Campos, tipos e valores null.",
     letter: "01",
     before:
       '{\n  "id": 42,\n  "nome": "Marina Exemplo",\n  "email": "marina@example.com",\n  "cpf": "000.000.000-00",\n  "ativo": true,\n  "apelido": null,\n  "telefone": "(00) 00000-0000",\n  "endereco": {\n    "cidade": "Cidade Exemplo",\n    "uf": "SP"\n  },\n  "itens": [\n    {\n      "sku": "DEMO-01",\n      "quantidade": 2\n    },\n    {\n      "sku": "DEMO-02",\n      "quantidade": 1\n    }\n  ]\n}',

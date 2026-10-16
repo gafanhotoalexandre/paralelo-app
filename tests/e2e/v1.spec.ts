@@ -26,12 +26,12 @@ test("free comparison, directional null, exact numbers, formatting and complete 
   await compare(page);
   await expect(page.getByTestId("total-count")).toHaveText("03");
   await page
-    .getByRole("button", { name: "/nullable — Transição envolvendo null" })
+    .getByRole("button", { name: "/nullable — Mudança envolvendo null" })
     .click();
   await expect(page.getByRole("dialog")).toContainText("Informativa");
   await page.keyboard.press("Escape");
   await page
-    .getByRole("button", { name: "/usable — Transição envolvendo null" })
+    .getByRole("button", { name: "/usable — Mudança envolvendo null" })
     .click();
   await expect(page.getByRole("dialog")).toContainText(
     "Potencial incompatibilidade",
@@ -111,11 +111,9 @@ test("large formatted output fails without losing documents or a valid compariso
 }) => {
   test.setTimeout(45000);
   await ready(page);
-  await page
-    .context()
-    .grantPermissions(["clipboard-read", "clipboard-write"], {
-      origin: "http://127.0.0.1:5184",
-    });
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: "http://127.0.0.1:4184",
+  });
   const source = JSON.stringify(Array(220000).fill(0));
   for (const side of ["before", "after"])
     await page
@@ -157,10 +155,14 @@ test("busy worker remains isolated; cancellation and replacement recover normall
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Cancelar" })).toBeVisible();
   await expect(page.getByTestId("code-before")).toHaveAttribute(
-    "contenteditable",
-    "false",
+    "aria-readonly",
+    "true",
   );
   await expect(page.getByRole("button", { name: /^Comparar/ })).toBeDisabled();
+  const originalText = await page.getByTestId("code-before").innerText();
+  await page.getByTestId("code-before").click();
+  await page.keyboard.type("BLOCKED_INPUT");
+  expect(await page.getByTestId("code-before").innerText()).toBe(originalText);
   // A frame can run on the UI thread while the worker is executing synchronous work.
   const frame = await page.evaluate(
     () =>
@@ -229,7 +231,7 @@ test("a near-limit Unicode line is compared and its complete value can be locate
   await compare(page);
   await expect(page.getByTestId("total-count")).toHaveText("01");
   await page
-    .getByRole("button", { name: "(raiz) — Transição envolvendo null" })
+    .getByRole("button", { name: "(raiz) — Mudança envolvendo null" })
     .click();
   await expect(page.getByRole("dialog")).toContainText("Prévia truncada");
   await page

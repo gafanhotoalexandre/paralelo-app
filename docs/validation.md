@@ -4,10 +4,10 @@ Execução em 15/10/2026, Windows, Node.js 24 e dependências fixadas pelo packa
 
 ## Resultado
 
-- **112 testes Vitest aprovados**, cobrindo Core, cliente Worker, estados React e exemplos.
-- **18 fluxos Playwright aprovados** sobre o build de produção: 16 no Chromium, um fluxo integrado no Firefox e um no WebKit.
+- **119 testes Vitest aprovados**, cobrindo Core, cliente Worker, estados React e exemplos.
+- **22 fluxos Playwright aprovados** sobre o build de produção: 20 no Chromium, um fluxo integrado no Firefox e um no WebKit.
 - TypeScript estrito e build estático de produção aprovados.
-- Aplicação publicada localmente com `npm run preview`, em http://127.0.0.1:5184/.
+- Aplicação publicada localmente com `npm run preview`, em http://127.0.0.1:4184/.
 
 ## Motor e validação estrita
 
@@ -52,7 +52,7 @@ Execução em 15/10/2026, Windows, Node.js 24 e dependências fixadas pelo packa
 - Localização seleciona o valor completo com delimitadores. Uma subárvore de milhares de linhas, após conteúdo extenso, mostra seu início; realce por linha limitado a 200 linhas.
 - Linha Unicode com 260.000 emoji: 1.040.002 bytes, mais BOM na importação. Edição, desfazer, cópia e comparação real/localização conferidos. Arquivo acima de 1 MiB ou UTF-8 inválido preserva o editor.
 - Clipboard disponível/indisponível; abas/sessões independentes; sem browser storage e sem requisições a terceiros no fluxo testado.
-- Tooltip por hover/foco e Popover por clique/toque na política de arrays. Select estilizado por teclado, sem dropdown nativo. Logo e favicon usam o mesmo arquivo SVG.
+- Popover único por clique/toque, Enter ou Space na política de arrays; sem tooltip duplicado. Select estilizado por teclado, sem dropdown nativo. Logo e favicon usam o mesmo arquivo SVG.
 - Redução de movimento, saída do editor por Tab e navegação de abas por setas. Ampliação de 200% por CSS sem rolagem horizontal global; não equivale a uma matriz de zoom nativo.
 - Contraste calculado para texto principal/secundário, classificações, ação primária e sintaxe. Numeração de linhas/editores ajustada ao tom secundário de contraste maior. Isso não constitui auditoria WCAG completa.
 
@@ -72,3 +72,36 @@ Execução em 15/10/2026, Windows, Node.js 24 e dependências fixadas pelo packa
 - Vite emite aviso de chunk principal acima de 500 kB; build passa. Aproximadamente 235 KiB gzip no principal e 22 kB sem compressão no Worker.
 - Sem persistência; recarregar descarta a bancada e restaura o exemplo. Sem inferência contratual, identidade/movimentação de arrays ou funcionalidades da V2.
 - Foi necessário executar navegadores fora do sandbox de subprocessos do ambiente. Nenhuma publicação remota foi realizada.
+
+## Correções de UX e limpeza
+
+### Causas e correções
+
+- Comparação válida repetida sempre acionava Worker, estado ocupado, toast e novo resultado; o efeito de resultado reiniciava filtros/página/seleção. Agora a revisão e o modo já comparados tornam a ação sem efeitos. Comparações efetivamente novas continuam atualizando o inspector.
+- `setText()` sempre substituía o documento, mesmo idêntico: invalidava resultado, seleção e histórico. O editor agora ignora substituições idênticas, inclusive ao repetir um exemplo ou uma formatação já aplicada.
+- O estado ocupado era também o indicador visual imediato. Agora o bloqueio continua síncrono, com feedback após 150 ms e limpeza do timer em conclusão, cancelamento e desmontagem. A aparência dos controles não se atenua durante esse intervalo; os controles que já estavam indisponíveis continuam assim. O aviso anterior de desatualização é preservado enquanto se processa uma nova comparação.
+- CodeMirror alternava `contenteditable` e reconfigurava atributos de erro em cada operação. Mantém-se editável no DOM, usando a faceta `readOnly` durante trabalho; erros e atributos ARIA são atualizados sem reconfigurar o editor. Nenhum editor é remontado.
+- Tooltip de arrays e Popover repetiam o mesmo texto: o controle agora usa somente Popover, com foco/Escape gerenciados pelo Radix.
+- A seta triangular nativa recebia rotação de 45 graus, translação negativa, fundo e tamanho quadrado. Essas transformações foram removidas; o SVG mantém a proporção triangular nativa e é excluído do dimensionamento global de ícones. Corrigido no componente compartilhado, sem deslocar o tooltip para ocultar o defeito.
+- A checagem antecipada comparava comprimento UTF-16 com bytes UTF-8. O Core já validava UTF-8, mas documentos Unicode excedentes só eram rejeitados posteriormente. A verificação antecipada agora usa os bytes UTF-8 dos mesmos textos enviados ao Worker, mantendo todas as validações definitivas do Core.
+- Revisão editorial restrita: “Comparação de JSON”, “Não comparado”, “Mudança envolvendo null”, ajuda direta e remoção de subtítulos redundantes. O toast de comparação concluída foi retirado; um anúncio discreto para tecnologias assistivas permanece.
+
+### Evidência adicional
+
+- Oito comparações seguidas e repetição do mesmo exemplo preservam classificação, página, seleção de diferença e instâncias CodeMirror. MutationObserver confere ausência de mudanças nos controles, feedback e documentos durante as comparações repetidas.
+- Alternância entre cadastro, webhook e configuração com Worker real e resposta atrasada em 40 ms: amostras das mutações confirmam opacidade estável, ausência do indicador e posição constante da bancada.
+- Teste com timer controlado confirma bloqueio antes do feedback, indicador apenas em 150 ms e remoção após conclusão. Cancelamento, timeout e recriação do Worker seguem cobertos.
+- Limites antecipados ASCII e emoji: exatamente 1.048.576 bytes aceitos e um byte adicional rejeitado antes do envio ao Worker, preservando o conteúdo. Formatação sem mudança preserva o resultado atual.
+- Popover único por mouse/teclado, restauração de foco, Escape, clique externo e viewport de 360 px.
+- Geometria da seta fora do retângulo de texto em 1.440 e 360 px; tooltip de formatação também conferido por teclado. Verificação visual adicional no navegador do app em produção.
+- Capturas adicionais: `screenshots/paralelo-export-tooltip.png` e `screenshots/paralelo-array-popover.png`.
+
+### Limpeza realizada
+
+- `artifacts/`: 70 arquivos de publicação .NET/Blazor e registros temporários de verificações antigas, reproduzíveis e sem função no React atual.
+- `.artifacts/`: captura temporária de zoom, substituída pelos testes e capturas atuais.
+- `test-results/`, `debug.log` e `tsconfig.tsbuildinfo`: resultados/cache/log regeneráveis, retirados após a validação.
+- CSS sem consumidores de controles substituídos e subtítulos removidos; props `onNotice` e `getLength` sem uso no editor.
+- Nenhuma dependência removida: as dependências existentes têm uso no build, runtime ou testes. Nenhuma nova dependência adicionada.
+- Mantidos testes, documentação, capturas atuais, fontes/licenças, POC de referência, `.git` e as branches `archive/dotnet-v1` e `archive/dotnet-rar`. O backup local `paralelo_app.rar` foi preservado e ignorado; sua preservação integral em outro local não foi demonstrada.
+- O build atual em `dist/` permanece como saída útil do build validado, ignorada pelo Git. Nenhum processo de preview permanece executando após a entrega.

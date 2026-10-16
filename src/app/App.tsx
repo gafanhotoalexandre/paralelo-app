@@ -87,7 +87,16 @@ export function App() {
   }
   useEffect(() => () => clearTimeout(noticeTimer.current), []);
   const workbench = useWorkbench(refs, notify);
-  const { mode, result, stale, busy, issues, operationError } = workbench;
+  const {
+    mode,
+    result,
+    stale,
+    displayStale,
+    busy,
+    processing,
+    issues,
+    operationError,
+  } = workbench;
   const hasResult = result !== null;
   const comparedMode = result?.mode ?? mode;
   const differences = result?.differences ?? [];
@@ -194,6 +203,7 @@ export function App() {
     <TooltipProvider delayDuration={350}>
       <div
         className="app"
+        data-processing={processing}
         onKeyDown={(event) => {
           if (
             overlay ||
@@ -224,15 +234,24 @@ export function App() {
             />
             <span>Paralelo</span>
           </a>
-          <span className="brand-caption">JSON / comparação</span>
+          <span className="brand-caption">Comparação de JSON</span>
           <div className="top-right">
-            <span className="signature">
-              uma ferramenta de <strong>Alexandre Martins</strong>
-            </span>
+            <a
+              className="signature"
+              href="https://alemartins.dev.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Portfólio de Alexandre Martins (alemartins.dev.br)"
+              title="Portfólio de Alexandre Martins"
+            >
+              <span>por</span>
+              <strong>alemartins.dev</strong>
+            </a>
             <Button
               variant="ghost"
               aria-label="Como funciona"
               disabled={Boolean(busy)}
+              data-operation-disabled={Boolean(busy)}
               onClick={() => open("help")}
             >
               <CircleHelp data-icon="inline-start" />
@@ -242,18 +261,23 @@ export function App() {
         </header>
         <section className="work-heading">
           <div>
-            <h1>Comparar documentos</h1>
-            <p>Diferenças na estrutura e no conteúdo de duas respostas JSON.</p>
+            <h1>Comparar JSONs</h1>
+            <p>
+              Identifique diferenças de estrutura ou conteúdo entre duas versões.
+            </p>
           </div>
-          <Badge variant="preview">
-            {busy
-              ? "Processando…"
-              : stale && result
-                ? "Resultado desatualizado"
-                : result
-                  ? "Comparação concluída"
-                  : "Pronto para comparar"}
-          </Badge>
+          {!processing &&
+            (issues.length > 0 || operationError || (displayStale && result)) && (
+              <Badge
+                variant={issues.length > 0 || operationError ? "risk" : "preview"}
+              >
+                {issues.length > 0
+                  ? "Verifique os documentos"
+                  : operationError
+                    ? "Operação não concluída"
+                    : "Resultado desatualizado"}
+              </Badge>
+            )}
         </section>
         <div className="command" aria-label="Ferramentas de comparação">
           <div className="command-left">
@@ -262,6 +286,7 @@ export function App() {
               type="single"
               value={mode}
               disabled={Boolean(busy)}
+              data-operation-disabled={Boolean(busy)}
               onValueChange={(value) => {
                 if (value) workbench.setMode(value as "structural" | "content");
               }}
@@ -270,12 +295,16 @@ export function App() {
               <ToggleGroupItem value="structural">Estrutural</ToggleGroupItem>
               <ToggleGroupItem value="content">Conteúdo</ToggleGroupItem>
             </ToggleGroup>
-            <ArrayPolicy disabled={Boolean(busy)} />
+            <ArrayPolicy
+              disabled={Boolean(busy)}
+              data-operation-disabled={Boolean(busy)}
+            />
           </div>
           <div className="command-right">
             <Button
               variant="outline"
               disabled={Boolean(busy)}
+              data-operation-disabled={Boolean(busy)}
               onClick={() => open("examples")}
             >
               <BookOpen data-icon="inline-start" />
@@ -284,6 +313,7 @@ export function App() {
             <Button
               variant="outline"
               disabled={Boolean(busy)}
+              data-operation-disabled={Boolean(busy)}
               onClick={workbench.swap}
               aria-label="Inverter documentos"
             >
@@ -293,6 +323,7 @@ export function App() {
             <Button
               variant="ghost"
               disabled={Boolean(busy)}
+              data-operation-disabled={Boolean(busy)}
               onClick={clear}
               aria-label="Limpar documentos"
             >
@@ -301,6 +332,7 @@ export function App() {
             </Button>
             <Button
               disabled={Boolean(busy)}
+              data-operation-disabled={Boolean(busy)}
               onClick={() => {
                 void workbench.compare();
               }}
@@ -311,7 +343,7 @@ export function App() {
           </div>
         </div>
         <div className="operation-feedback" aria-live="polite">
-          {busy ? (
+          {processing ? (
             <>
               <LoaderCircle className="processing-spinner" />
               <span>
@@ -336,11 +368,16 @@ export function App() {
                     .filter((e) => !e.side)
                     .map((e) => e.message)
                     .join(" ") ||
-                  "Até 1 MiB por documento. A análise compara amostras JSON."}
+                  "Até 1 MiB por JSON."}
               </span>
             </>
           )}
         </div>
+        <span className="sr-only" aria-live="polite">
+          {result
+            ? `${result.counts.total} diferenças no modo ${result.mode === "structural" ? "Estrutural" : "Conteúdo"}.`
+            : ""}
+        </span>
         <Tabs
           value={
             viewport === "tablet" && panel !== "differences"
@@ -389,8 +426,9 @@ export function App() {
               initialText={initialExample.before}
               visible={visible("before")}
               expanded={expanded === "before"}
-              stale={stale || !hasResult}
+              stale={displayStale || !hasResult}
               busy={Boolean(busy)}
+              processing={processing}
               error={errorFor("before")}
               onFormat={() => {
                 void workbench.format("before");
@@ -408,7 +446,6 @@ export function App() {
               onCopy={(text) => {
                 void copy(text);
               }}
-              onNotice={notify}
             />
             <JsonEditor
               ref={after}
@@ -416,8 +453,9 @@ export function App() {
               initialText={initialExample.after}
               visible={visible("after")}
               expanded={expanded === "after"}
-              stale={stale || !hasResult}
+              stale={displayStale || !hasResult}
               busy={Boolean(busy)}
+              processing={processing}
               error={errorFor("after")}
               onFormat={() => {
                 void workbench.format("after");
@@ -435,7 +473,6 @@ export function App() {
               onCopy={(text) => {
                 void copy(text);
               }}
-              onNotice={notify}
             />
           </section>
           <Inspector
@@ -444,6 +481,8 @@ export function App() {
             }
             hasResult={hasResult}
             busy={Boolean(busy)}
+            processing={processing}
+            displayStale={displayStale}
             onExport={() => {
               void workbench.exportMarkdown();
             }}
@@ -477,11 +516,6 @@ export function App() {
             Processamento local. Seus JSONs não são enviados.
           </span>
           <span className="footer-status">
-            {stale && hasResult
-              ? "Resultado desatualizado"
-              : hasResult
-                ? "Resultado atualizado"
-                : "Pronto para comparar"}
             <kbd>Ctrl / ⌘ + Enter</kbd>
           </span>
         </footer>
@@ -521,7 +555,7 @@ export function App() {
                 {sheetKind === "examples"
                   ? "Substitui os dois documentos e apresenta o resultado no modo selecionado."
                   : sheetKind === "help"
-                    ? "O que você pode experimentar nesta bancada."
+                    ? "Como comparar e inspecionar seus documentos."
                     : `Diferença ${selectedIndex + 1} de ${filtered.length} no filtro atual.`}
               </SheetDescription>
             </SheetHeader>
@@ -529,7 +563,7 @@ export function App() {
               {sheetKind === "examples" && (
                 <>
                   <p className="drawer-intro">
-                    Dados fictícios para explorar a interface.
+                    Escolha um par de documentos fictícios.
                   </p>
                   <div className="example-list">
                     {examples.map((item) => (
@@ -545,8 +579,8 @@ export function App() {
                           <span>{item.subtitle}</span>
                           <small>
                             {item.id === example.id
-                              ? "Exemplo atual"
-                              : "Carregar cenário"}
+                              ? "Em uso"
+                              : "Carregar"}
                           </small>
                         </span>
                         <ChevronRight />
@@ -574,11 +608,11 @@ export function App() {
                     </p>
                   </section>
                   <section>
-                    <h3>Edite com liberdade</h3>
+                    <h3>Edite os documentos</h3>
                     <p>
-                      Os editores são reais. Você pode digitar, importar UTF-8,
-                      copiar, desfazer e ampliar. Alterações tornam o resultado
-                      anterior desatualizado. Compare novamente para atualizar o
+                      Você pode digitar, importar UTF-8, copiar, desfazer e
+                      ampliar. Alterações tornam o resultado anterior
+                      desatualizado. Compare novamente para atualizar o
                       resultado.
                     </p>
                   </section>

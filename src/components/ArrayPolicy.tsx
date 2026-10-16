@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { Info } from "lucide-react";
 import { Button } from "./ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import {
   Popover,
   PopoverContent,
@@ -13,34 +11,20 @@ import {
 const explanation =
   "Os elementos são comparados pela posição. Reordenar um array pode gerar diferenças mesmo sem alterar seus valores.";
 export function ArrayPolicy({ disabled = false }: { disabled?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const [hint, setHint] = useState(false);
   return (
-    <Popover
-      open={open}
-      onOpenChange={(value) => {
-        setOpen(value);
-        setHint(false);
-      }}
-    >
-      <Tooltip open={!open && hint} onOpenChange={setHint}>
-        <TooltipTrigger asChild>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              disabled={disabled}
-              className="array-policy"
-              aria-label="Como arrays são comparados"
-            >
-              <Info />
-              <span>Arrays por índice</span>
-            </Button>
-          </PopoverTrigger>
-        </TooltipTrigger>
-        <TooltipContent className="policy-tooltip" sideOffset={8}>
-          {explanation}
-        </TooltipContent>
-      </Tooltip>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          disabled={disabled}
+          data-operation-disabled={disabled}
+          className="array-policy"
+          aria-label="Como arrays são comparados"
+        >
+          <Info />
+          <span>Arrays por índice</span>
+        </Button>
+      </PopoverTrigger>
       <PopoverContent align="start" aria-label="Comparação de arrays">
         <PopoverHeader>
           <PopoverTitle>Arrays por índice</PopoverTitle>

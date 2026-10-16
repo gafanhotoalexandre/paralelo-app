@@ -37,7 +37,6 @@ import type { Side, SourceRange } from "@/core/models";
 
 export interface EditorHandle {
   getText(): string;
-  getLength(): number;
   setText(text: string): void;
   focus(): void;
   locate(range: SourceRange): void;
@@ -50,6 +49,7 @@ interface Props {
   expanded: boolean;
   stale: boolean;
   busy: boolean;
+  processing: boolean;
   error?: string;
   onFormat(): void;
   onImport(file: File): void;
@@ -57,7 +57,6 @@ interface Props {
   onFocus(): void;
   onExpand(): void;
   onCopy(text: string): void;
-  onNotice(text: string): void;
 }
 const locateEffect = StateEffect.define<SourceRange>();
 const locatedRange = StateField.define<DecorationSet>({
@@ -202,24 +201,25 @@ export function JsonEditor(props: Props) {
   }, [props.visible, props.expanded]);
   useEffect(() => {
     view.current?.dispatch({
-      effects: configuration.reconfigure([
-        EditorState.readOnly.of(props.busy),
-        EditorView.editable.of(!props.busy),
-        EditorView.contentAttributes.of({
-          "aria-invalid": props.error ? "true" : "false",
-          "aria-describedby": props.error ? `error-${props.side}` : "",
-        }),
-      ]),
+      effects: configuration.reconfigure([EditorState.readOnly.of(props.busy)]),
     });
-  }, [props.busy, props.error, configuration, props.side]);
+  }, [props.busy, configuration]);
+  useEffect(() => {
+    const content = view.current?.contentDOM;
+    if (!content) return;
+    content.setAttribute("aria-readonly", String(props.busy));
+    content.setAttribute("aria-invalid", String(Boolean(props.error)));
+    if (props.error)
+      content.setAttribute("aria-describedby", `error-${props.side}`);
+    else content.removeAttribute("aria-describedby");
+  }, [props.busy, props.error, props.side]);
   useImperativeHandle(
     props.ref,
     () => ({
       getText: () => view.current?.state.doc.toString() ?? "",
-      getLength: () => view.current?.state.doc.length ?? 0,
       setText(text) {
         const v = view.current;
-        if (v)
+        if (v && v.state.doc.toString() !== text)
           v.dispatch({
             changes: { from: 0, to: v.state.doc.length, insert: text },
             selection: { anchor: 0 },
@@ -264,11 +264,6 @@ export function JsonEditor(props: Props) {
           </span>
           <div>
             <h2 id={`title-${props.side}`}>JSON {label}</h2>
-            <p>
-              {props.side === "before"
-                ? "Versão de referência"
-                : "Versão para análise"}
-            </p>
           </div>
         </div>
         <div className="editor-tools">
@@ -277,6 +272,7 @@ export function JsonEditor(props: Props) {
             type="file"
             accept=".json,application/json"
             disabled={props.busy}
+            data-operation-disabled={props.busy}
             hidden
             onChange={(event) => {
               const file = event.target.files?.[0];
@@ -287,6 +283,7 @@ export function JsonEditor(props: Props) {
           <IconButton
             label={`Importar JSON ${label}`}
             disabled={props.busy}
+            data-operation-disabled={props.busy}
             onClick={() => fileInput.current?.click()}
           >
             <Upload />
@@ -295,12 +292,14 @@ export function JsonEditor(props: Props) {
             label={`Formatar JSON ${label}`}
             onClick={props.onFormat}
             disabled={props.busy}
+            data-operation-disabled={props.busy}
           >
             <Braces />
           </IconButton>
           <IconButton
             label={`Copiar JSON ${label}`}
             disabled={props.busy}
+            data-operation-disabled={props.busy}
             onClick={() =>
               props.onCopy(view.current?.state.doc.toString() ?? "")
             }
@@ -310,6 +309,7 @@ export function JsonEditor(props: Props) {
           <IconButton
             label={`${props.expanded ? "Restaurar" : "Ampliar"} editor ${label}`}
             disabled={props.busy}
+            data-operation-disabled={props.busy}
             onClick={props.onExpand}
           >
             {props.expanded ? <Minimize2 /> : <Maximize2 />}
@@ -327,12 +327,12 @@ export function JsonEditor(props: Props) {
           <i />
           {metrics.length === 0
             ? "Sem conteúdo"
-            : props.busy
+            : props.processing
               ? "Processando…"
               : props.error
                 ? "Verifique o documento"
                 : props.stale
-                  ? "A comparar"
+                  ? "Não comparado"
                   : "Comparado"}
         </span>
         <span>

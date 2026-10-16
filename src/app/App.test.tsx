@@ -55,8 +55,8 @@ vi.mock("@/components/JsonEditor", () => ({
     const text = useRef<HTMLTextAreaElement>(null);
     useImperativeHandle(props.ref, () => ({
       getText: () => text.current!.value,
-      getLength: () => text.current!.value.length,
       setText(value) {
+        if (text.current!.value === value) return;
         text.current!.value = value;
         props.onChange();
       },
@@ -228,4 +228,129 @@ it("ignores a delayed import after cancellation and another document action", as
   });
   expect(screen.getByLabelText("JSON original")).toHaveValue("");
   expect(screen.getByTestId("total-count")).toHaveTextContent("00");
+});
+
+it("keeps the current result, filter and detail selection for repeated comparisons and the same example", async () => {
+  render(<App />);
+  await loaded();
+  fireEvent.click(screen.getByRole("radio", { name: /^Potenciais$/ }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "/ativo — Tipo alterado" }),
+  );
+  fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+  // Closing by the actual control also exercises the retained selection.
+  if (screen.queryByRole("dialog"))
+    fireEvent.click(screen.getByRole("button", { name: /Fechar/ }));
+  for (let i = 0; i < 5; i++)
+    fireEvent.click(screen.getByRole("button", { name: /^Comparar/ }));
+  expect(observed.run).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("radio", { name: /^Potenciais$/ })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  expect(document.getElementById("difference-1")).toHaveClass("selected");
+  fireEvent.click(screen.getByRole("button", { name: "Exemplos" }));
+  fireEvent.click(screen.getByRole("button", { name: /Cadastro de cliente/ }));
+  expect(observed.run).toHaveBeenCalledTimes(1);
+  expect(screen.getByRole("radio", { name: /^Potenciais$/ })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  expect(screen.getByRole("status")).not.toHaveTextContent(
+    "Comparação concluída",
+  );
+});
+
+it("locks immediately but shows processing only after 150 ms, clearing the timer on completion", async () => {
+  render(<App />);
+  await loaded();
+  vi.useFakeTimers();
+  try {
+    let release!: () => void;
+    observed.run.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    fireEvent.change(screen.getByLabelText("JSON original"), {
+      target: { value: "null" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Comparar/ }));
+    expect(screen.getByRole("button", { name: /^Comparar/ })).toBeDisabled();
+    expect(screen.getByLabelText("JSON original")).toHaveAttribute("readonly");
+    expect(
+      screen.queryByRole("button", { name: "Cancelar" }),
+    ).not.toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(149));
+    expect(
+      screen.queryByRole("button", { name: "Cancelar" }),
+    ).not.toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeVisible();
+    await act(async () => {
+      release();
+      await Promise.resolve();
+    });
+    expect(
+      screen.queryByRole("button", { name: "Cancelar" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Comparar/ })).toBeEnabled();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it.each([
+  ["ASCII at limit", '"' + "a".repeat(1048574) + '"', true],
+  ["ASCII over limit", '"' + "a".repeat(1048575) + '"', false],
+  ["Unicode at limit", '"' + "😀".repeat(262143) + 'aa"', true],
+  ["Unicode over limit", '"' + "😀".repeat(262143) + 'aaa"', false],
+] as const)(
+  "checks UTF-8 before dispatching to the worker: %s",
+  async (_, text, valid) => {
+    render(<App />);
+    await loaded();
+    observed.run.mockClear();
+    fireEvent.change(screen.getByLabelText("JSON original"), {
+      target: { value: text },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Comparar/ }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /^Comparar/ })).toBeEnabled(),
+    );
+    expect(observed.run).toHaveBeenCalledTimes(valid ? 1 : 0);
+    if (!valid)
+      expect(
+        screen
+          .getAllByRole("alert")
+          .some((e) => e.textContent?.includes("1 MiB em UTF-8")),
+      ).toBe(true);
+    expect(screen.getByLabelText("JSON original")).toHaveValue(text);
+  },
+);
+
+it("formatting an already formatted document preserves its current result and filter", async () => {
+  render(<App />);
+  await loaded();
+  fireEvent.click(screen.getByRole("radio", { name: "Informativas" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Formatar JSON original" }),
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Formatar JSON original" }),
+    ).toBeEnabled(),
+  );
+  expect(
+    screen.getByRole("button", { name: "Exportar relatório Markdown" }),
+  ).toBeEnabled();
+  expect(screen.getByRole("radio", { name: "Informativas" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  fireEvent.click(screen.getByRole("button", { name: /^Comparar/ }));
+  expect(
+    observed.run.mock.calls.filter(([job]) => job.operation === "compare"),
+  ).toHaveLength(1);
 });

@@ -3,7 +3,7 @@ export const changeLabels: Record<ChangeKind, string> = {
   PropertyAdded: "Propriedade adicionada",
   PropertyRemoved: "Propriedade removida",
   TypeChanged: "Tipo alterado",
-  NullChanged: "Transição envolvendo null",
+  NullChanged: "Mudança envolvendo null",
   ArrayItemAdded: "Elemento adicionado",
   ArrayItemRemoved: "Elemento removido",
   ValueChanged: "Valor alterado",

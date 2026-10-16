@@ -22,6 +22,8 @@ npm run build
 npm run preview
 ```
 
+O preview usa http://127.0.0.1:4184/. Para encerrar o dev ou o preview, use **Ctrl+C no terminal que o iniciou**.
+
 A saída está em `dist/`, ignorada no Git. Pode ser hospedada como arquivos estáticos, servindo os arquivos JavaScript do Worker com seu tipo correto. Use HTTPS em produção, inclusive para acesso ao clipboard. Não é necessário ASP.NET, SignalR ou WebSockets; o WebSocket de HMR existe apenas no desenvolvimento do Vite. Publicação remota permanece fora desta entrega.
 
 ## Utilizar
@@ -30,11 +32,11 @@ A primeira visita abre o exemplo fictício de cadastro já comparado. Os exemplo
 
 - **Estrutural:** identifica propriedades, tipos, transições envolvendo null e diferenças nos arrays. Ignora mudanças comuns de valores escalares.
 - **Conteúdo:** acrescenta mudanças de valores escalares, com igualdade numérica exata.
-- Digitação, importação, formatação, inversão e mudança de modo exigem clicar em **Comparar**, ou usar Ctrl/Cmd+Enter na bancada. O resultado anterior continua consultável, com indicação de desatualização; localização e exportação ficam bloqueadas.
+- Após alterar os documentos ou o modo, clique em **Comparar**, ou use Ctrl/Cmd+Enter na bancada. Comparar novamente um resultado atual ou recarregar o mesmo exemplo intacto preserva os filtros e a seleção, sem refazer a operação. O resultado anterior continua consultável, com indicação de desatualização; localização e exportação ficam bloqueadas.
 - Cada editor permite importar `.json` em UTF-8 com ou sem BOM, formatar, copiar, ampliar, desfazer/refazer e localizar valores completos. Tab permite sair do editor.
 - O inspector combina os filtros de classificação e tipo, com páginas de 25 diferenças. O drawer navega pelo conjunto filtrado, inclusive entre páginas.
 - **Exportar Markdown** inclui todas as diferenças da comparação atual, independentemente dos filtros. Ausência, JSON null e prévias truncadas são identificados.
-- Durante processamento, os documentos e as ações concorrentes são bloqueados. **Cancelar** interrompe o Worker. Após 10 segundos, a operação é interrompida automaticamente; falhas permitem tentar uma nova operação, preservando os documentos.
+- Durante processamento, os documentos e as ações concorrentes são bloqueados imediatamente. O indicador aparece apenas após 150 ms, evitando piscadas em operações rápidas. **Cancelar** interrompe o Worker. Após 10 segundos, a operação é interrompida automaticamente; falhas permitem tentar uma nova operação, preservando os documentos.
 
 ## Regras de comparação
 
@@ -83,7 +85,7 @@ A POC preservada em `reference/api-diff-poc.html` orienta composição, cores e 
 
 As instâncias CodeMirror permanecem montadas: texto, seleção, histórico e rolagem sobrevivem à alternância de abas, expansão e redimensionamento. Drawers têm contenção/restauração de foco, Escape e ancoragem nas bordas. Movimentos curtos respeitam a preferência por movimento reduzido. DM Sans e IBM Plex Mono são locais, com licenças em `public/fonts/`. Logo e favicon compartilham o mesmo SVG com barras inclinadas.
 
-“Arrays por índice” oferece explicação por hover/foco e por clique/toque. O filtro de tipo usa Select estilizado sobre Radix, com navegação por teclado.
+“Arrays por índice” abre uma única explicação por clique, Enter, Space ou toque, com fechamento por Escape ou clique externo. O filtro de tipo usa Select estilizado sobre Radix, com navegação por teclado.
 
 ## Testar
 
@@ -95,7 +97,7 @@ npx playwright install chromium firefox webkit
 npm run test:e2e
 ```
 
-Vitest cobre motor, limites, relatórios, ciclo de vida do Worker e estados da bancada. Playwright usa o artefato de produção e CodeMirror real: execute o build antes. Reutiliza o preview local da porta 5184 ou o inicia quando necessário. A suíte completa roda em Chromium; Firefox e WebKit executam um fluxo integrado de comparação, formatação, localização, filtros e download.
+Vitest cobre motor, limites, relatórios, ciclo de vida do Worker e estados da bancada. Playwright usa o artefato de produção e CodeMirror real: execute o build antes. Reutiliza o preview local da porta 4184 ou o inicia quando necessário. A suíte completa roda em Chromium; Firefox e WebKit executam um fluxo integrado de comparação, formatação, localização, filtros e download.
 
 Casos, resultados, capturas e limites da validação estão em [docs/validation.md](docs/validation.md).
 

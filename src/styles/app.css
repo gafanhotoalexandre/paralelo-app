@@ -143,14 +143,6 @@ button svg {
   justify-content: center;
   gap: 6px;
 }
-.brand-mark i {
-  display: block;
-  width: 3px;
-  height: 16px;
-  background: #fff;
-  border-radius: 3px;
-  transform: skew(-9deg);
-}
 .brand-caption {
   font: 11px var(--font-mono);
   color: var(--muted-foreground);
@@ -164,12 +156,22 @@ button svg {
   gap: 22px;
 }
 .signature {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   color: var(--muted-foreground);
+  text-decoration: none;
 }
 .signature strong {
   font-weight: 600;
   color: #42565a;
+}
+.signature:hover strong,
+.signature:focus-visible strong {
+  color: var(--accent-foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .work-heading {
   padding: 20px 2px 16px;
@@ -324,31 +326,6 @@ kbd {
   background: #fff;
   box-shadow: 0 1px 5px #14333119;
 }
-.command-policy {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--muted-foreground);
-  margin-left: 10px;
-  border-left: 1px solid var(--border);
-  padding-left: 16px;
-}
-.command-policy svg {
-  width: 14px;
-}
-.demo-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--muted-foreground);
-  padding: 9px 2px;
-}
-.demo-notice svg {
-  width: 13px;
-  height: 16px;
-}
 .bench {
   min-height: 0;
   min-width: 0;
@@ -409,11 +386,6 @@ kbd {
   font-weight: 700;
   white-space: nowrap;
 }
-.editor-label p {
-  color: var(--muted-foreground);
-  font-size: 11px;
-  margin-top: 2px;
-}
 .editor-tools {
   display: flex;
   align-items: center;
@@ -456,9 +428,6 @@ kbd {
   }
   .editor-tools {
     margin-left: auto;
-  }
-  .editor-label p {
-    display: none;
   }
   .editor-number {
     display: none;
@@ -551,16 +520,6 @@ kbd {
 }
 .kind-filter svg {
   width: 13px;
-}
-.kind-filter select {
-  width: 100%;
-  min-width: 0;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  padding: 4px 0;
-  font-size: 11px;
-  color: #42565a;
 }
 .kind-filter span:last-child {
   font: 10px var(--font-mono);
@@ -1110,10 +1069,6 @@ kbd {
   .signature {
     display: none;
   }
-  .command-policy {
-    margin-left: 4px;
-    padding-left: 10px;
-  }
   .command {
     gap: 6px;
   }
@@ -1159,9 +1114,6 @@ kbd {
   .tab-count {
     font: 10px var(--font-mono);
     margin-left: 4px;
-  }
-  .command-policy {
-    display: none;
   }
   .inspector-overview {
     padding-block: 12px;
@@ -1255,14 +1207,6 @@ kbd {
     margin-left: auto;
     padding-inline: 15px;
   }
-  .demo-notice {
-    font-size: 10.5px;
-    line-height: 1.5;
-    padding: 8px 2px;
-  }
-  .demo-notice span {
-    max-width: 100%;
-  }
   .workspace-tabs {
     margin-bottom: 8px;
   }
@@ -1350,10 +1294,6 @@ kbd {
   font-size: 12px;
   padding-left: 15px;
 }
-.policy-tooltip {
-  max-width: min(320px, calc(100vw - 24px));
-  line-height: 1.7;
-}
 [data-slot="popover-content"] {
   background: #fff;
   color: var(--foreground);
@@ -1413,7 +1353,7 @@ kbd {
 }
 
 .operation-feedback {
-  min-height: 34px;
+  min-height: 38px;
   padding: 7px 2px;
   display: flex;
   align-items: center;
@@ -1464,4 +1404,18 @@ kbd {
   .operation-feedback {
     font-size: 10.5px;
   }
+}
+
+/* Radix positions its triangular arrow. Global icon sizing must not reshape it. */
+[data-slot="tooltip-arrow"] {
+  width: 10px;
+  height: 5px;
+  stroke: none;
+}
+/* Operations lock immediately; quick jobs do not dim and brighten the controls. */
+.app[data-processing="false"] [data-operation-disabled="true"]:disabled,
+.app[data-processing="false"]
+  [data-operation-disabled="true"]
+  [data-slot="toggle-group-item"]:disabled {
+  opacity: 1;
 }
