@@ -237,15 +237,15 @@ export function Inspector(p: Props) {
                       ? "Nenhuma diferença estrutural"
                       : "Nenhuma diferença encontrada"
                   : p.processing
-                    ? "Comparando documentos…"
+                    ? "Comparando JSONs…"
                     : "Pronto para comparar"}
               </EmptyTitle>
               <EmptyDescription>
                 {p.hasResult
                   ? p.differences.length
                     ? "Tente outra classificação ou tipo de alteração."
-                    : "Os documentos são equivalentes no modo selecionado."
-                  : "Cole ou importe seus documentos, ou carregue um exemplo."}
+                    : "Os JSONs são equivalentes no modo selecionado."
+                  : "Cole ou importe seus JSONs, ou carregue um exemplo."}
               </EmptyDescription>
             </EmptyHeader>
             {!p.hasResult && (

@@ -330,7 +330,7 @@ export function JsonEditor(props: Props) {
             : props.processing
               ? "Processando…"
               : props.error
-                ? "Verifique o documento"
+                ? "Verifique o JSON"
                 : props.stale
                   ? "Não comparado"
                   : "Comparado"}

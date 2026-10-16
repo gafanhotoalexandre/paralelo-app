@@ -78,10 +78,10 @@ export function useWorkbench(
     if (!mounted.current || generation.current !== id) return;
     const text =
       error instanceof WorkerFailure && error.reason === "cancelled"
-        ? "Operação cancelada. Os documentos foram preservados."
+        ? "Operação cancelada. Os JSONs foram preservados."
         : error instanceof WorkerFailure && error.reason === "timeout"
-          ? "A operação ultrapassou 10 segundos e foi interrompida. Os documentos foram preservados."
-          : "Não foi possível concluir o processamento. Os documentos foram preservados. Tente novamente.";
+          ? "A operação ultrapassou 10 segundos e foi interrompida. Os JSONs foram preservados."
+          : "Não foi possível concluir o processamento. Os JSONs foram preservados. Tente novamente.";
     setOperationError(text);
     notify(text);
   }
@@ -94,7 +94,7 @@ export function useWorkbench(
       .map((side) => ({
         code: "documentSize" as const,
         side,
-        message: "O documento ultrapassa 1 MiB em UTF-8.",
+        message: "O JSON ultrapassa 1 MiB em UTF-8.",
       }));
     if (errors.length) {
       setIssues(errors);
@@ -192,7 +192,7 @@ export function useWorkbench(
           {
             code: "documentSize",
             side,
-            message: "O arquivo ultrapassa 1 MiB. O documento foi preservado.",
+            message: "O arquivo ultrapassa 1 MiB. O JSON foi preservado.",
           },
         ]);
         return;
@@ -203,7 +203,7 @@ export function useWorkbench(
       if (!mounted.current || generation.current !== id) return;
       if (text !== read(side)) {
         editors[side].current?.setText(text);
-        notify("Documento importado. Compare para atualizar o resultado.");
+        notify("JSON importado. Compare para atualizar o resultado.");
       }
     } catch {
       if (mounted.current && generation.current === id)
@@ -212,7 +212,7 @@ export function useWorkbench(
             code: "unicode",
             side,
             message:
-              "Não foi possível ler o arquivo como UTF-8. O documento foi preservado.",
+              "Não foi possível ler o arquivo como UTF-8. O JSON foi preservado.",
           },
         ]);
     } finally {
@@ -240,7 +240,7 @@ export function useWorkbench(
     if (a === b) return;
     setDocuments(b, a);
     setStale(true);
-    notify("Documentos invertidos. Compare para atualizar o resultado.");
+    notify("JSONs invertidos. Compare para atualizar o resultado.");
   }
   async function exportMarkdown() {
     if (!result || stale || comparedRevision.current !== revision.current)
@@ -311,7 +311,7 @@ export function useWorkbench(
     locked.current = false;
     setProcessing(false);
     setBusy(null);
-    const text = "Operação cancelada. Os documentos foram preservados.";
+    const text = "Operação cancelada. Os JSONs foram preservados.";
     setOperationError(text);
     notify(text);
   }

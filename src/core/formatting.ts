@@ -27,7 +27,7 @@ export function formatJson(request: FormatJsonRequest): FormatJsonResponse {
           code: "formattedSize",
           side: request.side,
           message:
-            "O JSON formatado ultrapassa 1 MiB. O documento foi preservado.",
+            "O JSON formatado ultrapassa 1 MiB. O conteúdo original foi preservado.",
         },
       ],
     };

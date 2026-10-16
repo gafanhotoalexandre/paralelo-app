@@ -66,7 +66,7 @@ export function validateJson(text: string, side: Side): ParsedDocument {
       text,
       side,
       "documentSize",
-      "O documento ultrapassa 1 MiB em UTF-8.",
+      "O JSON ultrapassa 1 MiB em UTF-8.",
     );
   const bad = invalidSurrogate(text);
   if (bad >= 0)
@@ -74,7 +74,7 @@ export function validateJson(text: string, side: Side): ParsedDocument {
       text,
       side,
       "unicode",
-      "O documento contém uma sequência Unicode inválida.",
+      "O JSON contém uma sequência Unicode inválida.",
       bad,
     );
   if (utf8Length(text) > LIMITS.documentBytes)
@@ -82,10 +82,10 @@ export function validateJson(text: string, side: Side): ParsedDocument {
       text,
       side,
       "documentSize",
-      "O documento ultrapassa 1 MiB em UTF-8.",
+      "O JSON ultrapassa 1 MiB em UTF-8.",
     );
   if (/^[ \t\r\n]*$/.test(text))
-    return problem(text, side, "syntax", "Informe um documento JSON.");
+    return problem(text, side, "syntax", "Informe um JSON.");
   // Scan before recursive parsing: the scanner itself is iterative and preserves source offsets.
   const scanner = createScanner(text, false);
   let depth = 0;
@@ -106,7 +106,7 @@ export function validateJson(text: string, side: Side): ParsedDocument {
         text,
         side,
         "unicode",
-        "O documento contém uma sequência Unicode inválida.",
+        "O JSON contém uma sequência Unicode inválida.",
         offset,
       );
     if (token === Token.OpenBraceToken || token === Token.OpenBracketToken) {
@@ -115,7 +115,7 @@ export function validateJson(text: string, side: Side): ParsedDocument {
           text,
           side,
           "depth",
-          "O documento ultrapassa 64 níveis.",
+          "O JSON ultrapassa 64 níveis.",
           offset,
         );
     } else if (
@@ -182,7 +182,7 @@ export function validateJson(text: string, side: Side): ParsedDocument {
       text,
       side,
       "duplicateProperty",
-      "O documento contém propriedades duplicadas.",
+      "O JSON contém propriedades duplicadas.",
       repeated.offset,
     );
   return { status: "success", root };

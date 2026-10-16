@@ -46,7 +46,7 @@ test("responsive workbench at every boundary, without global horizontal overflow
         await page.screenshot({ path: `${shots}/paralelo-mobile-results.png` });
       await page
         .getByRole("tab", {
-          name: width <= 720 ? "Original" : "Documentos",
+          name: width <= 720 ? "Original" : "JSONs",
           exact: true,
         })
         .click();
@@ -167,7 +167,7 @@ test("editor instances, selection, undo and text survive tabs, resize and expans
     .toBe("{");
   await page.setViewportSize({ width: 768, height: 900 });
   await page.getByRole("tab", { name: /^Diferenças/ }).click();
-  await page.getByRole("tab", { name: "Documentos", exact: true }).click();
+  await page.getByRole("tab", { name: "JSONs", exact: true }).click();
   await original.focus();
   await expect
     .poll(() => page.evaluate(() => window.getSelection()?.toString()))
@@ -224,7 +224,7 @@ test("near-1 MiB Unicode import remains editable; oversized and invalid UTF-8 fi
       Buffer.from(unicode),
     ]),
   });
-  await expect(page.getByRole("status")).toContainText("Documento importado");
+  await expect(page.getByRole("status")).toContainText("JSON importado");
   await page.getByTestId("code-before").focus();
   await page.keyboard.press("Control+End");
   await page.keyboard.type("X");
@@ -297,7 +297,7 @@ test("clipboard unavailable gives feedback; reduced motion and session isolation
     );
   expect(duration).toBeLessThanOrEqual(0.001);
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Limpar documentos" }).click();
+  await page.getByRole("button", { name: "Limpar JSONs" }).click();
   const second = await browser.newContext();
   const independent = await second.newPage();
   await independent.goto("/");
@@ -332,7 +332,7 @@ test("scroll and keyboard navigation survive hidden panels; 200% zoom stays usab
     .toBeGreaterThan(100);
   const scrollTop = await scroller.evaluate((element) => element.scrollTop);
   await page.getByRole("tab", { name: /^Diferenças/ }).click();
-  await page.getByRole("tab", { name: "Documentos", exact: true }).click();
+  await page.getByRole("tab", { name: "JSONs", exact: true }).click();
   await expect
     .poll(() =>
       scroller.evaluate(

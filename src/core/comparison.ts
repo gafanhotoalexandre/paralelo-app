@@ -19,9 +19,9 @@ const types: Record<string, string> = {
   null: "null",
 };
 const descriptions: Record<ChangeKind, string> = {
-  PropertyAdded: "A propriedade passou a aparecer no documento atualizado.",
+  PropertyAdded: "A propriedade passou a aparecer no JSON atualizado.",
   PropertyRemoved:
-    "A propriedade deixou de aparecer no documento atualizado. Consumidores podem depender dela.",
+    "A propriedade deixou de aparecer no JSON atualizado. Consumidores podem depender dela.",
   TypeChanged: "O tipo observado mudou.",
   NullChanged: "O valor observado mudou envolvendo null.",
   ArrayItemAdded: "Um elemento apareceu nesta posição do array.",

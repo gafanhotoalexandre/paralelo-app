@@ -5,7 +5,8 @@ Execução em 15/10/2026, Windows, Node.js 24 e dependências fixadas pelo packa
 ## Resultado
 
 - **119 testes Vitest aprovados**, cobrindo Core, cliente Worker, estados React e exemplos.
-- **22 fluxos Playwright aprovados** sobre o build de produção: 20 no Chromium, um fluxo integrado no Firefox e um no WebKit.
+- Na execução de 15/10, **22 fluxos Playwright foram aprovados** sobre o build de produção: 20 no Chromium, um fluxo integrado no Firefox e um no WebKit.
+- Na revalidação dos chunks em 16/10, 119 testes Vitest e 21 fluxos Playwright passaram (20 Chromium e um WebKit). O Firefox caiu em `browserContext.newPage`, inclusive na repetição isolada, antes de executar o fluxo; a validação atual nesse navegador ficou pendente.
 - TypeScript estrito e build estático de produção aprovados.
 - Aplicação publicada localmente com `npm run preview`, em http://127.0.0.1:4184/.
 
@@ -27,7 +28,7 @@ Execução em 15/10/2026, Windows, Node.js 24 e dependências fixadas pelo packa
 
 - Formatação semanticamente equivalente e idempotente, com dois espaços/LF, ordem de propriedades/arrays preservada e sequência de tokens não brancos integralmente preservada, incluindo números e escapes.
 - Entrada inválida ou saída acima de 1 MiB não retorna texto substituto. Saída exatamente no limite aceita.
-- No navegador, falha de formatação com array de 220.000 números preserva o documento e a comparação válida; cópia confirma o conteúdo original.
+- No navegador, falha de formatação com array de 220.000 números preserva o JSON e a comparação válida; cópia confirma o conteúdo original.
 - Markdown inclui modo, política de arrays, resumo, classificações, todos os caminhos, ausência/null e indicação de prévia truncada.
 - Delimitadores maiores que sequências arbitrárias de backticks impedem escapar dos blocos; caminhos/valores com HTML permanecem em blocos.
 - Relatório exatamente em 8 MiB aceito; um byte a mais rejeitado sem relatório parcial.
@@ -40,12 +41,12 @@ Execução em 15/10/2026, Windows, Node.js 24 e dependências fixadas pelo packa
 - No navegador: Worker executando trabalho síncrono por cinco segundos, enquanto um frame da interface continua executando. Cancelamento restaura controles e a próxima comparação usa um Worker real novo.
 - Timeout testado com relógio controlado; falha real da thread injetada e recuperação verificada. Mensagem da exceção não chega ao feedback da interface.
 - Inicialização em React StrictMode e carregamento de exemplo executam uma comparação única. Modo é preservado. Digitação e demais alterações exigem comparação explícita.
-- Formatação altera apenas o lado solicitado e invalida o resultado; importação cancelada antes de concluir não sobrescreve documentos posteriores.
-- Erros nos dois documentos apresentados por lado; documento original tem prioridade de foco. Resultado anterior desatualizado continua consultável, com exportação/localização bloqueadas.
+- Formatação altera apenas o lado solicitado e invalida o resultado; importação cancelada antes de concluir não sobrescreve JSONs posteriores.
+- Erros nos dois JSONs apresentados por lado; JSON original tem prioridade de foco. Resultado anterior desatualizado continua consultável, com exportação/localização bloqueadas.
 
 ## Interface real
 
-- Larguras de 360, 720, 721, 768, 1.020, 1.021 e 1.440 px; sem rolagem horizontal global. Inspector ocupa a mesma área dos documentos nas faixas menores.
+- Larguras de 360, 720, 721, 768, 1.020, 1.021 e 1.440 px; sem rolagem horizontal global. Inspector ocupa a mesma área dos JSONs nas faixas menores.
 - Drawers esquerdo/direito com distância inferior a 1 px da borda; foco contido e restaurado após Escape, inclusive após navegação entre páginas.
 - Filtros de tipo e classificação por interseção; navegação anterior/próxima cruza a fronteira de 25 itens.
 - Instâncias CodeMirror, texto, seleção, histórico/desfazer e rolagem preservados ao ocultar/reabrir painéis, ampliar e redimensionar.
@@ -69,7 +70,7 @@ Execução em 15/10/2026, Windows, Node.js 24 e dependências fixadas pelo packa
 - A matriz completa roda no Chromium. Firefox/WebKit têm um fluxo integrado; WebKit no Windows não substitui Safari em dispositivos Apple físicos.
 - Não foi realizada auditoria manual com leitores de tela, todos os navegadores/dispositivos físicos ou todos os níveis de zoom nativo.
 - Tempo limite é de dez segundos e pode ser atingido conforme hardware e entrada, mesmo dentro dos limites de tamanho. O comportamento de falha é controlado; não se promete duração fixa de processamento.
-- Vite emite aviso de chunk principal acima de 500 kB; build passa. Aproximadamente 235 KiB gzip no principal e 22 kB sem compressão no Worker.
+- Após a separação de chunks, o build passa sem aviso de tamanho: aplicação ~203 kB, React ~219 kB, editor ~315 kB e Worker ~22 kB (minificados).
 - Sem persistência; recarregar descarta a bancada e restaura o exemplo. Sem inferência contratual, identidade/movimentação de arrays ou funcionalidades da V2.
 - Foi necessário executar navegadores fora do sandbox de subprocessos do ambiente. Nenhuma publicação remota foi realizada.
 
@@ -78,17 +79,17 @@ Execução em 15/10/2026, Windows, Node.js 24 e dependências fixadas pelo packa
 ### Causas e correções
 
 - Comparação válida repetida sempre acionava Worker, estado ocupado, toast e novo resultado; o efeito de resultado reiniciava filtros/página/seleção. Agora a revisão e o modo já comparados tornam a ação sem efeitos. Comparações efetivamente novas continuam atualizando o inspector.
-- `setText()` sempre substituía o documento, mesmo idêntico: invalidava resultado, seleção e histórico. O editor agora ignora substituições idênticas, inclusive ao repetir um exemplo ou uma formatação já aplicada.
+- `setText()` sempre substituía o JSON, mesmo idêntico: invalidava resultado, seleção e histórico. O editor agora ignora substituições idênticas, inclusive ao repetir um exemplo ou uma formatação já aplicada.
 - O estado ocupado era também o indicador visual imediato. Agora o bloqueio continua síncrono, com feedback após 150 ms e limpeza do timer em conclusão, cancelamento e desmontagem. A aparência dos controles não se atenua durante esse intervalo; os controles que já estavam indisponíveis continuam assim. O aviso anterior de desatualização é preservado enquanto se processa uma nova comparação.
 - CodeMirror alternava `contenteditable` e reconfigurava atributos de erro em cada operação. Mantém-se editável no DOM, usando a faceta `readOnly` durante trabalho; erros e atributos ARIA são atualizados sem reconfigurar o editor. Nenhum editor é remontado.
 - Tooltip de arrays e Popover repetiam o mesmo texto: o controle agora usa somente Popover, com foco/Escape gerenciados pelo Radix.
 - A seta triangular nativa recebia rotação de 45 graus, translação negativa, fundo e tamanho quadrado. Essas transformações foram removidas; o SVG mantém a proporção triangular nativa e é excluído do dimensionamento global de ícones. Corrigido no componente compartilhado, sem deslocar o tooltip para ocultar o defeito.
-- A checagem antecipada comparava comprimento UTF-16 com bytes UTF-8. O Core já validava UTF-8, mas documentos Unicode excedentes só eram rejeitados posteriormente. A verificação antecipada agora usa os bytes UTF-8 dos mesmos textos enviados ao Worker, mantendo todas as validações definitivas do Core.
+- A checagem antecipada comparava comprimento UTF-16 com bytes UTF-8. O Core já validava UTF-8, mas JSONs Unicode excedentes só eram rejeitados posteriormente. A verificação antecipada agora usa os bytes UTF-8 dos mesmos textos enviados ao Worker, mantendo todas as validações definitivas do Core.
 - Revisão editorial restrita: “Comparação de JSON”, “Não comparado”, “Mudança envolvendo null”, ajuda direta e remoção de subtítulos redundantes. O toast de comparação concluída foi retirado; um anúncio discreto para tecnologias assistivas permanece.
 
 ### Evidência adicional
 
-- Oito comparações seguidas e repetição do mesmo exemplo preservam classificação, página, seleção de diferença e instâncias CodeMirror. MutationObserver confere ausência de mudanças nos controles, feedback e documentos durante as comparações repetidas.
+- Oito comparações seguidas e repetição do mesmo exemplo preservam classificação, página, seleção de diferença e instâncias CodeMirror. MutationObserver confere ausência de mudanças nos controles, feedback e JSONs durante as comparações repetidas.
 - Alternância entre cadastro, webhook e configuração com Worker real e resposta atrasada em 40 ms: amostras das mutações confirmam opacidade estável, ausência do indicador e posição constante da bancada.
 - Teste com timer controlado confirma bloqueio antes do feedback, indicador apenas em 150 ms e remoção após conclusão. Cancelamento, timeout e recriação do Worker seguem cobertos.
 - Limites antecipados ASCII e emoji: exatamente 1.048.576 bytes aceitos e um byte adicional rejeitado antes do envio ao Worker, preservando o conteúdo. Formatação sem mudança preserva o resultado atual.
@@ -98,10 +99,15 @@ Execução em 15/10/2026, Windows, Node.js 24 e dependências fixadas pelo packa
 
 ### Limpeza realizada
 
-- `artifacts/`: 70 arquivos de publicação .NET/Blazor e registros temporários de verificações antigas, reproduzíveis e sem função no React atual.
 - `.artifacts/`: captura temporária de zoom, substituída pelos testes e capturas atuais.
 - `test-results/`, `debug.log` e `tsconfig.tsbuildinfo`: resultados/cache/log regeneráveis, retirados após a validação.
 - CSS sem consumidores de controles substituídos e subtítulos removidos; props `onNotice` e `getLength` sem uso no editor.
 - Nenhuma dependência removida: as dependências existentes têm uso no build, runtime ou testes. Nenhuma nova dependência adicionada.
-- Mantidos testes, documentação, capturas atuais, fontes/licenças, POC de referência, `.git` e as branches `archive/dotnet-v1` e `archive/dotnet-rar`. O backup local `paralelo_app.rar` foi preservado e ignorado; sua preservação integral em outro local não foi demonstrada.
+- Mantidos testes, documentação, capturas atuais, fontes/licenças e POC de referência.
 - O build atual em `dist/` permanece como saída útil do build validado, ignorada pelo Git. Nenhum processo de preview permanece executando após a entrega.
+
+## Verificação manual de processamento
+
+O roteiro em [manual-processing.md](manual-processing.md) permite observar processamento lento, bloqueio, cancelamento, timeout e recuperação com uma condição controlada no Worker. Os testes automatizados desses estados também usam condições controladas; isso não significa que os exemplos normais levem dez segundos para processar.
+
+Em 16/10/2026, o script manual foi exercitado com Chromium automatizado: conclusão real após cinco segundos, bloqueio de edição, cancelamento, timeout de dez segundos reais e falha controlada. A preservação dos JSONs e uma nova comparação bem-sucedida foram conferidas após cancelamento, timeout e falha. As 21 verificações de Chromium/WebKit também passaram com a terminologia JSONs, e suas capturas foram atualizadas. Isso não substitui a verificação manual pelo usuário.

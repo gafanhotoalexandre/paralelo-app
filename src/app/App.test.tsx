@@ -221,7 +221,7 @@ it("ignores a delayed import after cancellation and another document action", as
     screen.getByRole("button", { name: "Importar JSON original" }),
   );
   fireEvent.click(await screen.findByRole("button", { name: "Cancelar" }));
-  fireEvent.click(screen.getByRole("button", { name: "Limpar documentos" }));
+  fireEvent.click(screen.getByRole("button", { name: "Limpar JSONs" }));
   await act(async () => {
     release(new TextEncoder().encode("{}").buffer);
     await Promise.resolve();

@@ -272,7 +272,7 @@ export function App() {
                 variant={issues.length > 0 || operationError ? "risk" : "preview"}
               >
                 {issues.length > 0
-                  ? "Verifique os documentos"
+                  ? "Verifique os JSONs"
                   : operationError
                     ? "Operação não concluída"
                     : "Resultado desatualizado"}
@@ -315,7 +315,7 @@ export function App() {
               disabled={Boolean(busy)}
               data-operation-disabled={Boolean(busy)}
               onClick={workbench.swap}
-              aria-label="Inverter documentos"
+              aria-label="Inverter JSONs"
             >
               <ArrowRightLeft data-icon="inline-start" />
               <span className="action-label">Inverter</span>
@@ -325,7 +325,7 @@ export function App() {
               disabled={Boolean(busy)}
               data-operation-disabled={Boolean(busy)}
               onClick={clear}
-              aria-label="Limpar documentos"
+              aria-label="Limpar JSONs"
             >
               <Trash2 data-icon="inline-start" />
               <span className="action-label">Limpar</span>
@@ -348,12 +348,12 @@ export function App() {
               <LoaderCircle className="processing-spinner" />
               <span>
                 {busy === "compare"
-                  ? "Comparando documentos…"
+                  ? "Comparando JSONs…"
                   : busy === "format"
                     ? "Formatando JSON…"
                     : busy === "markdown"
                       ? "Gerando relatório…"
-                      : "Importando documento…"}
+                      : "Importando JSON…"}
               </span>
               <Button variant="ghost" size="sm" onClick={workbench.cancel}>
                 Cancelar
@@ -390,7 +390,7 @@ export function App() {
           <TabsList aria-label="Áreas da bancada">
             {viewport === "tablet" ? (
               <TabsTrigger value="documents" aria-controls="documents">
-                Documentos
+                JSONs
               </TabsTrigger>
             ) : (
               <>
@@ -417,7 +417,7 @@ export function App() {
             className="documents"
             id="documents"
             role="tabpanel"
-            aria-label="Documentos"
+            aria-label="JSONs"
             hidden={!visible("before") && !visible("after")}
           >
             <JsonEditor
@@ -553,9 +553,9 @@ export function App() {
               </SheetTitle>
               <SheetDescription>
                 {sheetKind === "examples"
-                  ? "Substitui os dois documentos e apresenta o resultado no modo selecionado."
+                  ? "Substitui os dois JSONs e apresenta o resultado no modo selecionado."
                   : sheetKind === "help"
-                    ? "Como comparar e inspecionar seus documentos."
+                    ? "Como comparar e inspecionar seus JSONs."
                     : `Diferença ${selectedIndex + 1} de ${filtered.length} no filtro atual.`}
               </SheetDescription>
             </SheetHeader>
@@ -563,7 +563,7 @@ export function App() {
               {sheetKind === "examples" && (
                 <>
                   <p className="drawer-intro">
-                    Escolha um par de documentos fictícios.
+                    Escolha um par de JSONs fictícios.
                   </p>
                   <div className="example-list">
                     {examples.map((item) => (
@@ -595,7 +595,7 @@ export function App() {
                     <h3>Comece pelos exemplos</h3>
                     <p>
                       Carregue um cenário fictício para comparar
-                      automaticamente. Para seus documentos, escolha Estrutural
+                      automaticamente. Para seus JSONs, escolha Estrutural
                       ou Conteúdo e clique em Comparar.
                     </p>
                   </section>
@@ -603,12 +603,12 @@ export function App() {
                     <h3>Leia por diferença</h3>
                     <p>
                       Combine os filtros, abra um item e localize seu valor em
-                      cada documento. No modo Conteúdo, a configuração de
+                      cada JSON. No modo Conteúdo, a configuração de
                       serviço também permite experimentar a paginação.
                     </p>
                   </section>
                   <section>
-                    <h3>Edite os documentos</h3>
+                    <h3>Edite os JSONs</h3>
                     <p>
                       Você pode digitar, importar UTF-8, copiar, desfazer e
                       ampliar. Alterações tornam o resultado anterior
@@ -628,10 +628,10 @@ export function App() {
                   <section className="help-local">
                     <LockKeyhole />
                     <div>
-                      <h3>Documentos neste navegador</h3>
+                      <h3>JSONs neste navegador</h3>
                       <p>
                         Sem armazenamento, histórico ou envio dos seus JSONs.
-                        Formate cada documento separadamente e exporte todas as
+                        Formate cada JSON separadamente e exporte todas as
                         diferenças em Markdown.
                       </p>
                     </div>
@@ -689,7 +689,7 @@ export function App() {
                   </div>
                   <p className="detail-note">
                     {stale
-                      ? "Os documentos mudaram. A localização está indisponível para este resultado."
+                      ? "Os JSONs mudaram. A localização está indisponível para este resultado."
                       : selected.risk === "potential"
                         ? "Esta evidência merece atenção, mas não comprova quebra de contrato."
                         : "A classificação informativa não garante compatibilidade com todos os consumidores."}
